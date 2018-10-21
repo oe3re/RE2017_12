@@ -1,0 +1,2071 @@
+Microsoft (R) Macro Assembler Version 14.00.24210.0	    09/10/17 23:41:45
+patternmemory.asm					     Page 1 - 1
+
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C ;OPTION CASEMAP:NONE		; optional: make identifiers case-sensitive
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C INCLUDE VirtualKeys.inc
+			      C ; VirtualKeys.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE macros.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+
+				; Segment poruka koda(Messages, Rules, Error) je detaljno objasnjen u fajlu PatternMemory_Izvestaj.pdf
+				; Komentari su izostavljeni u samom kodu, radi lakse citljivosti datog dela koda.
+
+ 00000000			.data
+ 00000000 50 61 74 74 65	gameName BYTE "Pattern memory", 0
+	   72 6E 20 6D 65
+	   6D 6F 72 79 00
+
+				; ------------------------------MESSAGES-------------------------------------------------------- -
+ 0000000F 09 09 09 50 6C	introMsg BYTE "			Play pattern memory ", 0ah, 0dh, 0
+	   61 79 20 70 61
+	   74 74 65 72 6E
+	   20 6D 65 6D 6F
+	   72 79 20 0A 0D
+	   00
+
+ 00000029 4C 45 56 45 4C	levelMsg BYTE "LEVEL ", 0ah, 0dh, 0
+	   20 0A 0D 00
+
+ 00000032 0A 0D 09 09 53	matrixMsg BYTE 0ah, 0dh, "		Size of matrix [3-10] ? ", 0dh, 0ah, 0
+	   69 7A 65 20 6F
+	   66 20 6D 61 74
+	   72 69 78 20 5B
+	   33 2D 31 30 5D
+	   20 3F 20 0D 0A
+	   00
+
+ 00000051 0A 0D 09 09 53	nMsg BYTE 0ah, 0dh, "		Size of matrix is: ", 0dh, 0ah, 0
+	   69 7A 65 20 6F
+	   66 20 6D 61 74
+	   72 69 78 20 69
+	   73 3A 20 0D 0A
+	   00
+
+ 0000006B 0A 0D 09 09 43	nextMsg BYTE 0ah, 0dh, "		CORRECT!", 0ah, 0dh
+	   4F 52 52 45 43
+	   54 21 0A 0D
+ 00000079  09 09 4E 65 78	BYTE "		Next level", 0ah, 0dh, 0
+	   74 20 6C 65 76
+	   65 6C 0A 0D 00
+
+ 00000088 0A 0D 09 09 50	playMsg BYTE 0ah, 0dh, "		Play again? ", 0ah, 0dh
+	   6C 61 79 20 61
+	   67 61 69 6E 3F
+	   20 0A 0D
+ 0000009A  09 09 20 59 65	BYTE "		 Yes - Press [Y] button", 0ah, 0dh
+	   73 20 2D 20 50
+	   72 65 73 73 20
+	   5B 59 5D 20 62
+	   75 74 74 6F 6E
+	   0A 0D
+ 000000B5  09 09 20 4E 6F	BYTE "		 No - Press [N] button", 0ah, 0dh, 0
+	   20 2D 20 50 72
+	   65 73 73 20 5B
+	   4E 5D 20 62 75
+	   74 74 6F 6E 0A
+	   0D 00
+
+ 000000D0 0A 0D 53 63 6F	pointsMsg BYTE 0ah, 0dh, "Score:", 0ah, 0dh, 0
+	   72 65 3A 0A 0D
+	   00
+
+ 000000DB 09 09 09 4C 65	startMsg BYTE "			Let's begin! :) ", 0ah, 0dh, 0
+	   74 27 73 20 62
+	   65 67 69 6E 21
+	   20 3A 29 20 0A
+	   0D 00
+
+ 000000F1 09 09 43 4F 4E	winMsg BYTE "		CONGRATULATIONS!", 0ah, 0dh, 0
+	   47 52 41 54 55
+	   4C 41 54 49 4F
+	   4E 53 21 0A 0D
+	   00
+
+				; ------------------------------ - RULES---------------------------------------------------------- -
+ 00000106 0A 0D 09 09 47	gameRules	BYTE 0ah, 0dh, "		GAME RULES:", 0ah, 0dh
+	   41 4D 45 20 52
+	   55 4C 45 53 3A
+	   0A 0D
+ 00000117  09 09 31 2E 20				BYTE "		1. Use up, down, left and right arrow to move cursor.", 0ah, 0dh
+	   55 73 65 20 75
+	   70 2C 20 64 6F
+	   77 6E 2C 20 6C
+	   65 66 74 20 61
+	   6E 64 20 72 69
+	   67 68 74 20 61
+	   72 72 6F 77 20
+	   74 6F 20 6D 6F
+	   76 65 20 63 75
+	   72 73 6F 72 2E
+	   0A 0D
+ 00000150  09 09 32 2E 20				BYTE "		2. Use [Space bar] to select a cell.", 0ah, 0dh
+	   55 73 65 20 5B
+	   53 70 61 63 65
+	   20 62 61 72 5D
+	   20 74 6F 20 73
+	   65 6C 65 63 74
+	   20 61 20 63 65
+	   6C 6C 2E 0A 0D
+ 00000178  09 09 33 2E 20				BYTE "		3. Size of a matrix can take values from 3x3 up to 10x10.", 0ah, 0dh
+	   53 69 7A 65 20
+	   6F 66 20 61 20
+	   6D 61 74 72 69
+	   78 20 63 61 6E
+	   20 74 61 6B 65
+	   20 76 61 6C 75
+	   65 73 20 66 72
+	   6F 6D 20 33 78
+	   33 20 75 70 20
+	   74 6F 20 31 30
+	   78 31 30 2E 0A
+	   0D
+ 000001B5  09 09 34 2E 20				BYTE "		4. Size of a pattern can take values from 3 to 40.", 0ah, 0dh
+	   53 69 7A 65 20
+	   6F 66 20 61 20
+	   70 61 74 74 65
+	   72 6E 20 63 61
+	   6E 20 74 61 6B
+	   65 20 76 61 6C
+	   75 65 73 20 66
+	   72 6F 6D 20 33
+	   20 74 6F 20 34
+	   30 2E 0A 0D
+ 000001EB  09 09 35 2E 20				BYTE "		5. You can pick your own matrix size or a randomized one.", 0ah, 0dh
+	   59 6F 75 20 63
+	   61 6E 20 70 69
+	   63 6B 20 79 6F
+	   75 72 20 6F 77
+	   6E 20 6D 61 74
+	   72 69 78 20 73
+	   69 7A 65 20 6F
+	   72 20 61 20 72
+	   61 6E 64 6F 6D
+	   69 7A 65 64 20
+	   6F 6E 65 2E 0A
+	   0D
+ 00000228  09 09 36 2E 20				BYTE "		6. Every matrix size has 5 different levels.", 0ah, 0dh
+	   45 76 65 72 79
+	   20 6D 61 74 72
+	   69 78 20 73 69
+	   7A 65 20 68 61
+	   73 20 35 20 64
+	   69 66 66 65 72
+	   65 6E 74 20 6C
+	   65 76 65 6C 73
+	   2E 0A 0D
+ 00000258  09 09 37 2E 20				BYTE "		7. If your guess is correct, you win 10 points.", 0ah, 0dh
+	   49 66 20 79 6F
+	   75 72 20 67 75
+	   65 73 73 20 69
+	   73 20 63 6F 72
+	   72 65 63 74 2C
+	   20 79 6F 75 20
+	   77 69 6E 20 31
+	   30 20 70 6F 69
+	   6E 74 73 2E 0A
+	   0D
+ 0000028B  09 09 38 2E 20				BYTE "		8. If your answer is uncorrect, the game ends.", 0ah, 0dh
+	   49 66 20 79 6F
+	   75 72 20 61 6E
+	   73 77 65 72 20
+	   69 73 20 75 6E
+	   63 6F 72 72 65
+	   63 74 2C 20 74
+	   68 65 20 67 61
+	   6D 65 20 65 6E
+	   64 73 2E 0A 0D
+ 000002BD  09 09 39 2E 20				BYTE "		9. Have fun playing! :)", 0ah, 0dh, 0
+	   48 61 76 65 20
+	   66 75 6E 20 70
+	   6C 61 79 69 6E
+	   67 21 20 3A 29
+	   0A 0D 00
+
+				; ------------------------------ - DIFFICULTY------------------------------------------------------
+ 000002D9 0A 0D 09 09 43	difficultyMsg	BYTE 0ah, 0dh, "		Choose your difficulty preferences :", 0ah, 0dh
+	   68 6F 6F 73 65
+	   20 79 6F 75 72
+	   20 64 69 66 66
+	   69 63 75 6C 74
+	   79 20 70 72 65
+	   66 65 72 65 6E
+	   63 65 73 20 3A
+	   0A 0D
+ 00000303  09 09 31 2E 20					BYTE "		1. Custom difficulty setting - press [C] button", 0ah, 0dh
+	   43 75 73 74 6F
+	   6D 20 64 69 66
+	   66 69 63 75 6C
+	   74 79 20 73 65
+	   74 74 69 6E 67
+	   20 2D 20 70 72
+	   65 73 73 20 5B
+	   43 5D 20 62 75
+	   74 74 6F 6E 0A
+	   0D
+ 00000336  09 09 32 2E 20					BYTE "		2. Random difficulty setting - press [R] button", 0ah, 0dh, 0
+	   52 61 6E 64 6F
+	   6D 20 64 69 66
+	   66 69 63 75 6C
+	   74 79 20 73 65
+	   74 74 69 6E 67
+	   20 2D 20 70 72
+	   65 73 73 20 5B
+	   52 5D 20 62 75
+	   74 74 6F 6E 0A
+	   0D 00
+
+				; ------------------------------ - ERROR---------------------------------------------------------- -
+ 0000036A 0D 0A 59 6F 75	errorMsg BYTE  0dh, 0ah, "Your input is invalid. Please recheck the rules and enter again ", 0dh, 0ah, 0
+	   72 20 69 6E 70
+	   75 74 20 69 73
+	   20 69 6E 76 61
+	   6C 69 64 2E 20
+	   50 6C 65 61 73
+	   65 20 72 65 63
+	   68 65 63 6B 20
+	   74 68 65 20 72
+	   75 6C 65 73 20
+	   61 6E 64 20 65
+	   6E 74 65 72 20
+	   61 67 61 69 6E
+	   20 0D 0A 00
+
+ 000003AF 09 09 47 41 4D	gameOverMsg BYTE "		GAME OVER!", 0dh, 0ah, 0
+	   45 20 4F 56 45
+	   52 21 0D 0A 00
+
+				; ------------------------------ - MATRIX_&_PATTERN_VARIABLES--------------------------------------
+ 000003BE 00000000		K DWORD ? ; Izracunata velicina sablona(pattern - a) na osnovu zadate velicine matrice, K < N.
+ 000003C2 00			maxK BYTE ? ; Maksimalna smislena velicina sablona odredjena na osnovu velicine matrice.
+ 000003C3 00			minK BYTE ? ; Minimalna smislena velicina sablona odredjena na osnovu velicine matrice.
+ 000003C4 04			maxP BYTE 4; Pomocna velicina za odredjivanje minK.
+ 000003C5 02			minP BYTE 2; Pomocna velicina za odredjivanje maxK.
+ 000003C6 00000000		N DWORD ? ; Velicina matrice N x N, uneta od strane korisnika, ili izabrana random generatorom.
+ 000003CA 00000000		P DWORD ? ; P = 2 * K, pomocna promenljiva za indeksiranje kroz nizove.
+ 000003CE 00000000		tempNum DWORD ? ; Privremena promenljiva za unos.
+
+				; ------------------------------ - SCORE_VARIABLES------------------------------------------------ -
+ 000003D2 00000000		correct DWORD 0; Trenutni broj tacnih pogodaka sablona.
+ 000003D6 00000000		hits DWORD 0; Trenutni broj izabranih polja matrice.
+ 000003DA 01 02 03 04 05	levelNo BYTE 1, 2, 3, 4, 5; Niz nivoa igre.
+ 000003DF 00			mistake BYTE 0; Indikator da je u korisnikovom pogadjanju pronadjena greska.
+ 000003E0 00			points BYTE 0; Broj osvojenih bodova.
+
+				; ------------------------------ - POSITION_VARIABLES----------------------------------------------
+ 000003E1 0000			currentPos WORD ? ; Trenutna pozicija kursora
+ 000003E3 00			currentRed BYTE 0; Indikator da je trenutno polje vec selektovano od strane korisnika.
+ 000003E4 0C 10 14 18 1C	jumpCell BYTE  12, 16, 20, 24, 28, 32, 36, 40, 44, 48; Niz simetricnih koordinata(dl, dh->svaki po BYTE)pozicija kursora(sredista polja)
+	   20 24 28 2C 30
+ 000003EE 0B 0F 13 17 1B	startCell BYTE 11, 15, 19, 23, 27, 31, 35, 39, 43, 47; Niz simetricnih koordinata(dl, dh->svaki po BYTE) gornjeg levog ugla polja)
+	   1F 23 27 2B 2F
+ 000003F8 0000			previousPos WORD ? ; Prethodna pozicija kursora
+ 000003FA 00			previousRed BYTE 0; Indikator da je prethodno polje vec selektovano od strane korisnika.
+ 000003FB 00			tempx BYTE ? ; Pomocna promenljiva za x koordinatu, za pozivanje procedure.
+ 000003FC 00			tempy BYTE ? ; Pomocna promenljiva za y koordinatu, za pozivanje procedure.
+ 000003FD  00000031 [		patternArray WORD 49 dup(? ); Niz koordinata(dh | dl = dx(WORD)) sablona koji je dobijen randomizacijom
+	    0000
+	   ]
+ 0000045F  00000031 [		userArray WORD 49 dup(0); Niz korisnikovih unosa koji se poredi sa patternArray /
+	    0000
+	   ]
+ 000004C1 0000			userMove WORD ? ; Korisnikov unos sa tastature.
+ 000004C3 0000			userTemp WORD ? ; Pomocna promenljiva za proveru da li je polje ranije vec selektovano.
+
+				; ------------------------------ - COLORS------------------------------------------------ -
+ 000004C5 0000009F		colorW DWORD white + (lightBlue * 16); Bela boja sa plavom pozadinom, osnovna boja matrice i odredjenog dela teksta.
+ 000004C9 0000009E		colorY DWORD yellow + (lightBlue * 16); Zuta boja sa plavom pozadinom, za veci deo ispisanog teksta i za kretanje kursora.
+ 000004CD 0000009C		colorR DWORD lightRed + (lightBlue * 16); Crvena boja sa plavom pozadinom, za poruke greski ili pobede, i prikazivanje / selektovanje sablona.
+
+				; ------------------------------ - CONSOLE_CONTROL------------------------------------------------ -
+ 000004D1 00000000		outHandle DWORD ? ; handle za standardni izlaz.
+ 000004D5 00000000		consoleHandle HANDLE 0; handle za podesavanje prozora konzole
+ 000004D9 0000 0000 0014	windowRect SMALL_RECT <0, 0, 20, 80>; levo, vrh, desno, dno
+	   0050
+ 000004E1 00000000		cursorInfo CONSOLE_CURSOR_INFO <>; struktura kursora
+	   00000000
+ 000004E9 0000 0000 0000	consoleInfo CONSOLE_SCREEN_BUFFER_INFO <>; struktura screen buffer - a
+	   0000 0000 0000
+	   0000 0000 0000
+	   0000 0000
+ 000004FF 005A 0032		scrSize COORD <90, 50>;velicina prozora u koordinatama (broj redova i kolona)
+
+ 00000000			.code
+				; ------------------------------DRAWCELL_PROCEDURE-------------------------------------------- -
+ 00000000			drawCell PROC c uses eax ecx edx, y:BYTE, x : BYTE
+
+ 00000000  55		   *	    push   ebp
+ 00000001  8B EC	   *	    mov    ebp, esp
+ 00000003  50		   *	    push   eax
+ 00000004  51		   *	    push   ecx
+ 00000005  52		   *	    push   edx
+ 00000006  B9 00000003		mov ecx, 3;Broj prelazaka u novi red.
+ 0000000B			row :
+ 0000000B  B0 DB			mov al, 0DBh; Karakter koji se koristi za iscrtavanje polja smesta se u al deo eax registra.
+ 0000000D  E8 00000000 E		call WriteChar
+ 00000012  E8 00000000 E		call WriteChar
+ 00000017  E8 00000000 E		call WriteChar
+ 0000001C  FE C6			inc dh; Nakon 3 ispisa datog karaktera prelazi se u novi red.
+ 0000001E  8A 55 0C			mov dl, x; Vrednost broja kolone se postavlja na pocetnu, koja je prosledjena kao argument procedure.
+ 00000021  E8 00000000 E		call Gotoxy
+
+ 00000026  E2 E3		loop row; Petlja jednog reda polja se ponavlja 3 puta.
+
+ 00000028  8A 55 0C		mov dl, x
+ 0000002B  8A 75 08		mov dh, y
+ 0000002E  E8 00000000 E	call Gotoxy; Kursor se vraca na pocetnu poziciju iscrtavanja(gornji levi ugao polja).
+
+				ret
+ 00000033  5A		   *	    pop    edx
+ 00000034  59		   *	    pop    ecx
+ 00000035  58		   *	    pop    eax
+ 00000036  C9		   *	    leave  
+ 00000037  C3		   *	    ret    00000h
+ 00000038			drawCell ENDP
+
+				; ------------------------------DRAWMATRIX_PROCEDURE------------------------------------------ -
+ 00000038			drawMatrix PROC c uses eax esi edi edx, a:BYTE, b : BYTE, M : DWORD
+
+				LOCAL y1 : BYTE, x1 : BYTE, xcnt : BYTE, ycnt : BYTE
+
+ 00000038  55		   *	    push   ebp
+ 00000039  8B EC	   *	    mov    ebp, esp
+ 0000003B  83 C4 FC	   *	    add    esp, 0FFFFFFFCh
+ 0000003E  50		   *	    push   eax
+ 0000003F  56		   *	    push   esi
+ 00000040  57		   *	    push   edi
+ 00000041  52		   *	    push   edx
+ 00000042  C6 45 FD 00		mov xcnt, 0
+ 00000046  C6 45 FC 00		mov ycnt, 0; Lokalne pomocne promenljive xcnt i ycnt se postavljaju na 0.
+ 0000004A  B8 00000000		mov eax, 0;Vrednost eax registra se takodje postavlja na 0.
+
+ 0000004F			rows :
+ 0000004F  C6 45 FD 00			mov xcnt, 0;Pocetna vrednost lokalne promenljive xcnt se postavlja na 0.
+
+ 00000053			row :
+ 00000053  8A 45 FD			mov al, xcnt
+ 00000056  B4 00				mov ah, 0
+ 00000058  66| 6B C0 04				imul  ax, 4; Vrednost lokalne promenljive xcnt se smesta u ax registar, mnozi sa 4 i sabira sa argumentom b
+						; Argument b predstavlja pocetnu x koordinatu crtanja matrice.
+ 0000005C  02 45 0C				add al, b
+ 0000005F  88 45 FE				mov x1, al; Dobijeni rezultat se smesta u lokalnu promenljivu x1, koja predstavlja x koordinatu sledeceg polja
+						; matrice.
+
+ 00000062  8A 45 FC				mov al, ycnt
+ 00000065  B4 00				mov ah, 0
+ 00000067  66| 6B C0 04				imul ax, 4
+ 0000006B  02 45 08				add al, a
+ 0000006E  88 45 FF				mov y1, al; Lokalna promenljiva y1 se dobija na isti nacin kao x1,
+						; s tim sto ona predstavlja y koordinatu sledeceg polja matrice.
+
+ 00000071  FF 75 FE		push DWORD PTR x1
+ 00000074  FF 75 FF		push DWORD PTR y1; Dobijene vrednosti se prosledjuju na stek za poziv procedure drawCell.
+
+ 00000077  8A 55 FE		mov dl, x1
+ 0000007A  8A 75 FF		mov dh, y1
+ 0000007D  E8 00000000 E	call Gotoxy
+ 00000082  E8 FFFFFF79		call DrawCell; Nakon postavljanja kursora na poziciju datih vrednosti, poziva se procedura.
+
+ 00000087  FE 45 FD		inc xcnt
+ 0000008A  8A 45 10		mov al, BYTE PTR M; Vrednost xcnt se inkrementuje i poredi sa M(velicina matrice)
+ 0000008D  38 45 FD		cmp xcnt, al
+ 00000090  7C C1		jl row; Dok god je xcnt < M, ponavlja se petlja row, odnosno iscrtavaju se polja u jednom redu matrice.
+
+ 00000092  FE 45 FC			inc ycnt
+ 00000095  8A 45 10			mov al, BYTE PTR M; Vrednost ycnt se takodje inkrementuje i poredi sa M.
+ 00000098  38 45 FC			cmp ycnt, al
+ 0000009B  7C B2			jl rows; Dok god je ycnt < M ponavlja se petlja rows, odnosno iscrtavaju se novi redovi matrice.
+
+ 0000009D  FE 45 0C			inc b
+ 000000A0  FE 45 08			inc a
+ 000000A3  8A 55 0C			mov dl, b
+ 000000A6  8A 75 08			mov dh, a
+ 000000A9  E8 00000000 E		call Gotoxy; Kursor se postavlja na poziciju sredista gornjeg levog polja.
+
+					ret
+ 000000AE  5A		   *	    pop    edx
+ 000000AF  5F		   *	    pop    edi
+ 000000B0  5E		   *	    pop    esi
+ 000000B1  58		   *	    pop    eax
+ 000000B2  C9		   *	    leave  
+ 000000B3  C3		   *	    ret    00000h
+ 000000B4				drawMatrix ENDP
+
+					; ------------------------------ - ENDWINDOW PROCEDURE------------------------------------------ -
+ 000000B4				endWindow PROC c uses eax edx, msg1:DWORD, msg2 : DWORD, msg3 : DWORD
+
+ 000000B4  55		   *	    push   ebp
+ 000000B5  8B EC	   *	    mov    ebp, esp
+ 000000B7  50		   *	    push   eax
+ 000000B8  52		   *	    push   edx
+ 000000B9  E8 00000000 E		call Clrscr; Brise trenutno stanje ekrana.
+
+ 000000BE  FF 35 000004C9 R		push colorY
+ 000000C4  FF 35 000004CD R		push colorR
+ 000000CA  FF 75 08			push msg1
+ 000000CD  E8 0000004F			call changeColorMsg; Poziva proceduru za ispis poruke sa promenom boje.
+					; Poruka zavisi od ishoda igre, odnosno da li je predjen poslednji nivo, ili je igra zavrsene nakon pogresnog unosa.
+
+ 000000D2  8B 55 0C			mov edx, msg2
+ 000000D5  E8 00000000 E		call WriteString
+
+ 000000DA  E8 00000000 E		call ReadChar; Ceka na korisnikov unos karaktera Y(es) ili N(o)
+
+					.IF al == 059h || al == 079h; Y[Ascii] = 59h, y[Ascii] = 79h
+ 000000DF  3C 59	   *	    cmp    al, 059h
+ 000000E1  74 04	   *	    je	@C0002
+ 000000E3  3C 79	   *	    cmp    al, 079h
+ 000000E5  75 07	   *	    jne    @C0001
+ 000000E7		   *@C0002:
+ 000000E7  E9 00000968			jmp Restart; Ukoliko korisnik zeli da igra ponovo, skace se na Restart labelu
+
+					.ELSEIF al == 04Eh || al == 06Eh; N[Ascii] = 04h, n[Ascii] = 06h
+ 000000EC  EB 2F	   *	    jmp    @C0004
+ 000000EE		   *@C0001:
+ 000000EE  3C 4E	   *	    cmp    al, 04Eh
+ 000000F0  74 04	   *	    je	@C0006
+ 000000F2  3C 6E	   *	    cmp    al, 06Eh
+ 000000F4  75 07	   *	    jne    @C0005
+ 000000F6		   *@C0006:
+ 000000F6  E9 000009B2			jmp endGame; Ukoliko korisnik ne zeli da igra ponovo, izlazi se iz igre.
+
+					.ELSE; Ukoliko je unet neki drugi karakter, ispisuje se poruka o gresci, i ponovo se poziva procedura.
+ 000000FB  EB 20	   *	    jmp    @C0008
+ 000000FD		   *@C0005:
+ 000000FD  FF 75 10			push msg3
+ 00000100  E8 0000003D			call writeRedMsg
+
+ 00000105  B8 000003E8			mov eax, 1000
+ 0000010A  E8 00000000 E		call Delay
+
+ 0000010F  FF 75 10			push msg3
+ 00000112  FF 75 0C			push msg2
+ 00000115  FF 75 08			push msg1
+ 00000118  E8 FFFFFF97			call endWindow
+					.ENDIF
+ 0000011D		   *@C0008:
+ 0000011D		   *@C0004:
+
+					ret
+ 0000011D  5A		   *	    pop    edx
+ 0000011E  58		   *	    pop    eax
+ 0000011F  C9		   *	    leave  
+ 00000120  C3		   *	    ret    00000h
+ 00000121				endWindow ENDP
+
+				; ------------------------------ - CHANGE_COLOR_MESSAGE_PROCEDURE-------------------------------- -
+ 00000121				changeColorMsg PROC c uses eax edx, msg: DWORD, color1 : DWORD, color2 : DWORD
+
+ 00000121  55		   *	    push   ebp
+ 00000122  8B EC	   *	    mov    ebp, esp
+ 00000124  50		   *	    push   eax
+ 00000125  52		   *	    push   edx
+ 00000126  8B 45 0C			mov eax, color1
+ 00000129  E8 00000000 E		call SetTextColor; podesava boju teksta u boju prosledjenu proceduri kao prvi argument
+
+ 0000012E  8B 55 08			mov edx, msg
+ 00000131  E8 00000000 E		call WriteString; stampa poruku koja je prosledjeni proceduri kao offset date poruke
+
+ 00000136  8B 45 10			mov eax, color2
+ 00000139  E8 00000000 E		call SetTextColor; podesava novu boju teksta(ili vraca staru) nakon ispisa
+
+					ret
+ 0000013E  5A		   *	    pop    edx
+ 0000013F  58		   *	    pop    eax
+ 00000140  C9		   *	    leave  
+ 00000141  C3		   *	    ret    00000h
+ 00000142				changeColorMsg ENDP
+
+				; ------------------------------ - RED_MESSAGE_PROCEDURE-------------------------------- -
+ 00000142				writeRedMsg PROC c uses eax edx, msg: DWORD
+
+ 00000142  55		   *	    push   ebp
+ 00000143  8B EC	   *	    mov    ebp, esp
+ 00000145  50		   *	    push   eax
+ 00000146  52		   *	    push   edx
+ 00000147  FF 35 000004C9 R		push colorY
+ 0000014D  FF 35 000004CD R		push colorR
+ 00000153  FF 75 08			push msg
+ 00000156  E8 FFFFFFC6			call changeColorMsg; detaljnija varijanta procedure changeColorMsg, za ispise poruka crvenom bojom
+
+					ret
+ 0000015B  5A		   *	    pop    edx
+ 0000015C  58		   *	    pop    eax
+ 0000015D  C9		   *	    leave  
+ 0000015E  C3		   *	    ret    00000h
+ 0000015F				writeRedMsg ENDP
+
+				; ------------------------------COLORCELL_PROCEDURE----------------------------------------------
+ 0000015F				colorCell PROC c uses eax edx, color:DWORD, t : WORD
+
+					LOCAL tx : BYTE, ty : BYTE
+
+ 0000015F  55		   *	    push   ebp
+ 00000160  8B EC	   *	    mov    ebp, esp
+ 00000162  83 C4 FC	   *	    add    esp, 0FFFFFFFCh
+ 00000165  50		   *	    push   eax
+ 00000166  52		   *	    push   edx
+ 00000167  8B 45 08			mov eax, color
+ 0000016A  E8 00000000 E		call SetTextColor; Podesava se boja teksta u boju prosledjenu procedurom
+
+ 0000016F  66| 8B 55 0C			mov dx, t; U registar dx se smesta trenutna pozicija kursora
+ 00000173  FE CE			dec dh
+ 00000175  FE CA			dec dl; Obe koordinate se smanjuju za 1, posto vazi relacija StartCell[i] = JumpCell[i] - 1
+ 00000177  E8 00000000 E		call Gotoxy; Na taj nacin se kursor postavlja u gornji levi ugao polja, koji koristimo za iscrtavanje polja
+
+ 0000017C  88 55 FF			mov tx, dl
+ 0000017F  88 75 FE			mov ty, dh
+ 00000182  FF 75 FF			push DWORD PTR tx
+ 00000185  FF 75 FE			push DWORD PTR ty
+ 00000188  E8 FFFFFE73			call DrawCell; poziva se procedura za iscrtavanje polja, cime se trenutno polje ponovo ispisuje novom bojom
+					; koja nam je potrebna
+
+ 0000018D  FE C2		inc dl
+ 0000018F  FE C6		inc dh
+ 00000191  E8 00000000 E	call Gotoxy; vraca kursor u srediste polja
+
+				ret
+ 00000196  5A		   *	    pop    edx
+ 00000197  58		   *	    pop    eax
+ 00000198  C9		   *	    leave  
+ 00000199  C3		   *	    ret    00000h
+ 0000019A			colorCell ENDP
+
+				; ------------------------------ - MAIN_PROCEDURE--------------------------------------------------
+ 0000019A			main PROC
+
+				INVOKE GetStdHandle, STD_OUTPUT_HANDLE; Uzima se handle za standardni izlaz.
+ 0000019A  6A F5	   *	    push    -00000000Bh
+ 0000019C  E8 00000000 E   *	    call   GetStdHandle
+ 000001A1  A3 000004D1 R	mov outHandle, eax
+
+				INVOKE SetConsoleScreenBufferSize,
+				consoleHandle, scrSize; podesava se velicina screen buffer - a kao broj redova i broj kolona
+ 000001A6  FF 35 000004FF R *	    push   dword  ptr scrSize
+ 000001AC  FF 35 000004D5 R *	    push   consoleHandle
+ 000001B2  E8 00000000 E   *	    call   SetConsoleScreenBufferSize
+
+				INVOKE SetConsoleWindowInfo,
+				consoleHandle,
+				TRUE,
+				ADDR windowRect; podesava se velicina i pozicija prozora konzole relativno u odnosu na screen buffer
+ 000001B7  68 000004D9 R   *	    push   OFFSET windowRect
+ 000001BC  6A 01	   *	    push   +000000001h
+ 000001BE  FF 35 000004D5 R *	    push   consoleHandle
+ 000001C4  E8 00000000 E   *	    call   SetConsoleWindowInfo
+
+ 000001C9  E8 00000000 E	call Clrscr
+				INVOKE SetConsoleTitle, ADDR gameName;Podesava se naslov konzole na ime igre.
+ 000001CE  68 00000000 R   *	    push   OFFSET gameName
+ 000001D3  E8 00000000 E   *	    call   SetConsoleTitleA
+
+				;------------------------------- INTRO -----------------------------------------------------------
+ 000001D8			gameStart:
+
+ 000001D8  A1 000004C9 R	mov eax, colorY
+ 000001DD  E8 00000000 E	call SetTextColor; Podesava zutu boju teksta
+ 000001E2  E8 00000000 E	call Clrscr; Brise trenutno stanje ekrana u konzoli.
+
+ 000001E7  BA 0000000F R	mov edx, offset introMsg
+ 000001EC  E8 00000000 E	call WriteString; Ispisuje Intro poruku - Play pattern memory -
+
+ 000001F1  FF 35 000004C9 R	push colorY
+ 000001F7  FF 35 000004C5 R	push colorW
+ 000001FD  68 00000106 R	push offset gameRules
+ 00000202  E8 FFFFFF1A		call changeColorMsg; Poziva proceduru za promenu boje teksta i ispisuje pravila igre belom bojom.
+ 00000207  83 C4 0C		add esp, 12
+
+ 0000020A  B8 000003E8		mov eax, 1000
+ 0000020F  E8 00000000 E	call Delay;Cekanje da korisnik procita pravila.
+
+				;------------------------------- INPUT -----------------------------------------------------------
+ 00000214			diffInput :
+ 00000214  BA 000002D9 R	mov edx, offset difficultyMsg
+ 00000219  E8 00000000 E	call WriteString; Ispisuje poruku za izbor tezine igre(velicina matrice), pri cemu postoji Custom i Random varijanta
+ 0000021E  E8 00000000 E	call ReadChar; Cita karakter unet sa tastature od strane korisnika.
+
+				.IF al == 043h || al == 063h; C[Ascii] = 43h, c[Ascii] = 63h
+ 00000223  3C 43	   *	    cmp    al, 043h
+ 00000225  74 04	   *	    je	@C000A
+ 00000227  3C 63	   *	    cmp    al, 063h
+ 00000229  75 04	   *	    jne    @C0009
+ 0000022B		   *@C000A:
+ 0000022B  EB 1D		jmp CUSTOM; Skok na Custom varijantu unosa velicine matrice, odnosno korisnik sam bira velicinu.
+
+				.ELSEIF al == 052h || al == 072h; R[Ascii] = 52h, r[Ascii] = 72h
+ 0000022D  EB 1B	   *	    jmp    @C000C
+ 0000022F		   *@C0009:
+ 0000022F  3C 52	   *	    cmp    al, 052h
+ 00000231  74 04	   *	    je	@C000E
+ 00000233  3C 72	   *	    cmp    al, 072h
+ 00000235  75 04	   *	    jne    @C000D
+ 00000237		   *@C000E:
+ 00000237  EB 4F		jmp RANDOM; Skok na Random varijantu unosa velicine matrice, odnosno velicina je izabrana random generatorom.
+
+				.ELSE
+ 00000239  EB 0F	   *	    jmp    @C0010
+ 0000023B		   *@C000D:
+ 0000023B  68 0000036A R	push offset errorMsg
+ 00000240  E8 FFFFFEFD		call writeRedMsg; Bilo koji karakter osim c / C i r / R ce ispisati gresku crvenom bojom i ponoviti poruku za izbor tezine
+ 00000245  83 C4 04		add esp, 4
+ 00000248  EB CA		jmp diffInput;Skok za ponovni izbor tezine
+					.ENDIF
+ 0000024A		   *@C0010:
+ 0000024A		   *@C000C:
+
+				;------------------------------- CUSTOM PART -----------------------------------------------------
+ 0000024A			CUSTOM :
+ 0000024A  33 C0		xor eax, eax;Resetuje eax registar na 0.
+
+ 0000024C			matrixInput :
+ 0000024C  BA 00000032 R		mov edx, offset matrixMsg
+ 00000251  E8 00000000 E			call WriteString; Ispisuje poruku korisniku da unese velicinu matrice
+ 00000256  E8 00000000 E			call ReadDec; Cita decimalni broj unet sa tastature koji se smesta u eax.
+
+ 0000025B  A3 000003CE R			mov tempNum, eax; Sadrzaj eax registra se smesta u pomocnu promenljivu za proveru validnosti.
+
+						.IF tempNum < 3 || tempNum > 10
+ 00000260  83 3D 000003CE R
+	   03		   *	    cmp    tempNum, 003h
+ 00000267  72 09	   *	    jb	@C0012
+ 00000269  83 3D 000003CE R
+	   0A		   *	    cmp    tempNum, 00Ah
+ 00000270  76 0F	   *	    jbe    @C0011
+ 00000272		   *@C0012:
+ 00000272  68 0000036A R			push offset errorMsg
+ 00000277  E8 FFFFFEC6				call writeRedMsg; Ukoliko korisnik unese nevalidnu velicinu matrice, ispisuje gresku crvenom bojom
+ 0000027C  83 C4 04				add esp, 4
+ 0000027F  EB CB				jmp matrixInput; I skace na ponovni ispis poruke za unos velicine matrice.
+
+						.ENDIF
+ 00000281		   *@C0011:
+
+ 00000281  A3 000003C6 R			mov N, eax; Ukoliko je uneta velicina u validnom opsegu, smesta se u promenljivu N.
+ 00000286  EB 50				jmp skipRandom;Preskace Random varijantu unosa velicine matrice.
+
+				;------------------------------- RANDOM PART -----------------------------------------------------
+ 00000288			RANDOM :
+ 00000288  33 C0			xor eax, eax; Resetuje eax registar na 0.
+ 0000028A  E8 00000000 E			call Randomize; Poziv procedure Randomize koja postavlja novi seed za random generator u odnosu na trenutno vreme.
+ 0000028F  B8 0000000B				mov eax, 11; Gornja granica za random generator je 11 - 1 = 10, odnosno maksimalna velicina matrice.
+ 00000294  E8 00000000 E			call RandomRange; Poziv random generatora koji daje vrednosti iz skupa[0, 10]
+
+						.IF eax < 3;U slucaju da random generator da vrednost manju od minimalne velicine matrice {0,1,2}
+ 00000299  83 F8 03	   *	    cmp    eax, 003h
+ 0000029C  73 03	   *	    jae    @C0014
+ 0000029E  83 C0 03			add eax, 3; Dodaje se 3 da bi se dobila smislena velicina.
+						.ENDIF
+ 000002A1		   *@C0014:
+
+ 000002A1  A3 000003C6 R			mov N, eax; Broj dobijen randomizacijom se smesta u promenljivu N.
+ 000002A6  BA 00000051 R			mov edx, offset nMsg
+ 000002AB  E8 00000000 E			call WriteString;Ispisuje string Size of matrix is :
+ 000002B0  E8 00000000 E		call WriteDec; Ispisuje decimalnu vrednost sadrzaja eax registra, odnosno dobijeni random broj.
+
+ 000002B5  B8 000003E8				mov eax, 1000
+ 000002BA  E8 00000000 E			call Delay; Poziv funkcije za kasnjenje, da bi korisnik stigao da procita rezultat randomizacije.
+
+ 000002BF  E8 00000000 E			call Clrscr; Brise trenutno stanje ekrana u konzoli.
+ 000002C4  BA 000000DB R			mov edx, offset startMsg
+ 000002C9  E8 00000000 E			call WriteString;Ispisuje string za pocetak igre Let's begin! :)
+
+ 000002CE  B8 000003E8			mov eax, 1000
+ 000002D3  E8 00000000 E		call Delay; Poziv funkcije za kasnjenje, da bi korisnik stigao da procita poruku.
+
+				;------------------------------- PATTERN_CALCULATION ---------------------------------------------
+ 000002D8			skipRandom :
+ 000002D8  33 C0			xor eax, eax; Resetuje eax registar na 0.
+ 000002DA  A0 000003C6 R			mov al, BYTE PTR N; Smesta promenljivu N u al deo eax registra.
+						; Obzirom da je maksimalna velicina N = 10, koja zauzima 1BYTE, koriscenjem PTR operatora se ne gube informacije.
+ 000002DF  F7 25 000003C6 R			mul N; N x N odnosno daje broj polja matrice date velicine N.
+ 000002E5  F6 35 000003C5 R			div minP; Deli broj polja sa minP = 2
+ 000002EB  A2 000003C2 R			mov maxK, al; Dobijeni rezultat smesta u maxK, odnosno maksimalnu velicinu sablona.
+
+ 000002F0  A0 000003C6 R			mov al, BYTE PTR N
+ 000002F5  D0 E8				shr al, 1; Shiftuje velicinu N udesno za 1, da bi se dobila informacija o najnizem bitu, odnosno bitu parnosti.
+ 000002F7  73 06				jnc skipOdd; Ukoliko je C = 0, odnosno poslednji bit, preskace se racun za neparne brojeve.
+
+ 000002F9  FE 05 000003C2 R			inc maxK; Ukoliko je broj neparan, onda se maksimalan broj povecava jos za 1.
+						; Razlog za ovo je sto se deljenjem sa 2 neparnog broja, dobija paran broj.
+						; Velicina maxK se koristi u pozivu RandomRange procedure i daje brojeve iz opsega[0, maxK - 1]
+						; Inkrementovanjem u randomizaciji dobijamo velicinu sablona iz opsega[0, maxK]
+						; Odnosno za neparne velicine matrica dobijamo parnu maksimalnu velicinu sablona, a za parnu velicinu matrice
+						; Neparnu velicinu sablona.
+
+ 000002FF			skipOdd :
+ 000002FF  33 C0			xor eax, eax
+ 00000301  A0 000003C6 R			mov al, BYTE PTR N
+ 00000306  F7 25 000003C6 R			mul N
+ 0000030C  F6 35 000003C4 R			div maxP; Deli broj polja sa maxP = 4
+ 00000312  A2 000003C3 R		mov minK, al; Dobijeni rezultat smesta u minK, odnosno minimalnu velicinu sablona.
+
+				; ------------------------------ - LEVEL_LOOP -------------------------------------------
+ 00000317			gameLoop :
+ 00000317  E8 00000000 E		call Randomize
+ 0000031C  A0 000003C2 R			mov al, maxK; Smesta promenljivu maxK u al deo eax registra koji se koristi za poziv RandomRange
+ 00000321  25 000000FF				and eax, 0FFh;Podesava deo eax registra iznad al na 0, da bi se obrisali ostaci od prethodnih igranja.
+ 00000326  E8 00000000 E			call RandomRange
+
+						.IF al < minK; U slucaju da random generator da vrednost manju od minimalne velicine sablona{ 0...minK-1 }
+ 0000032B  3A 05 000003C3 R *	    cmp    al, minK
+ 00000331  73 06	   *	    jae    @C0016
+ 00000333  02 05 000003C3 R		add al, minK; Dodaje se minK da bi se dobila smislena velicina.
+						.ENDIF
+ 00000339		   *@C0016:
+
+ 00000339  A3 000003BE R			mov K, eax; Dobijeni rezultat se smesta u promenljivu K.
+ 0000033E  F6 25 000003C5 R			mul minP; Sadrzaj eax registra se mnozi sa 2
+ 00000344  A3 000003CA R			mov P, eax; Dobijeni rezulat se smesta u promenljivu P, koju koristimo za indeksiranja kroz nizove velicine WORD.
+
+				; ------------------------------GAME_START------------------------------------------------------ -
+ 00000349  A1 000004C9 R			mov eax, colorY
+ 0000034E  E8 00000000 E			call SetTextColor
+
+ 00000353  E8 00000000 E			call Clrscr
+ 00000358  BA 00000029 R			mov edx, offset levelMsg
+ 0000035D  E8 00000000 E			call WriteString;Ispis stringa Level:
+
+ 00000362  33 C0			xor eax, eax
+ 00000364  A0 000003DA R			mov al, levelNo
+ 00000369  E8 00000000 E			call WriteDec;Ispis decimalnog sadrzaja eax registra, odnosno trenutnog nivoa igre.
+
+ 0000036E  BA 000000D0 R		mov edx, offset pointsMsg
+ 00000373  E8 00000000 E		call WriteString; Ispis stringa Points :
+
+ 00000378  A0 000003E0 R		mov al, points
+ 0000037D  E8 00000000 E			call WriteDec; Ispis decimalnog sadrzaja eax registra, odnosno trenutnog broja bodova.
+
+ 00000382  A1 000004C5 R			mov eax, colorW
+ 00000387  E8 00000000 E			call SetTextColor
+
+ 0000038C  8A 35 000003EE R			mov dh, startCell[0]
+ 00000392  8A 15 000003EE R			mov dl, startCell[0]
+ 00000398  E8 00000000 E			call Gotoxy; Podesava poziciju kursora na pocetnu poziciju koordinata pocetka polja.
+
+ 0000039D  FF 35 000003C6 R			push N
+ 000003A3  6A 0B				push 11
+ 000003A5  6A 0B				push 11
+ 000003A7  E8 FFFFFC8C				call drawMatrix; Poziv procedure za iscrtavanje matrice sa parametrima : velicina matrice, pocetne
+						; koordinate iscrtavanja
+ 000003AC  83 C4 0C				add esp, 12
+
+
+						INVOKE GetConsoleCursorInfo, outHandle,
+						ADDR cursorInfo
+ 000003AF  68 000004E1 R   *	    push   OFFSET cursorInfo
+ 000003B4  FF 35 000004D1 R *	    push   outHandle
+ 000003BA  E8 00000000 E   *	    call   GetConsoleCursorInfo
+
+ 000003BF  C7 05 000004E5 R			mov  cursorInfo.bVisible, 0
+	   00000000
+						INVOKE SetConsoleCursorInfo, outHandle,
+						ADDR cursorInfo; Podesavanje nevidljivosti kursora  dok se iscrtava i prikazuje sablon
+ 000003C9  68 000004E1 R   *	    push   OFFSET cursorInfo
+ 000003CE  FF 35 000004D1 R *	    push   outHandle
+ 000003D4  E8 00000000 E   *	    call   SetConsoleCursorInfo
+
+						.IF levelNo > 1; Ukoliko je nivo veci od 1
+ 000003D9  80 3D 000003DA R
+	   01		   *	    cmp    levelNo, 001h
+ 000003E0  76 0A	   *	    jbe    @C0018
+ 000003E2  B8 000003E8				mov eax, 1000
+ 000003E7  E8 00000000 E			call Delay; Dodaje pauzu na prelasku izmedju nivoa
+						.ENDIF
+ 000003EC		   *@C0018:
+
+ 000003EC  A1 000004CD R			mov eax, colorR
+ 000003F1  E8 00000000 E			call SetTextColor; Podesava boju teksta za iscrtavanje sablona
+
+				; --------------------------------PATTERN--------------------------------------------------------
+ 000003F6  BB 00000000				mov ebx, 0;Pocetna vrednost ebx registra se podesava na 0, i predstavlja indeks u patternArray nizu.
+
+ 000003FB			patternLoop :
+ 000003FB  E8 00000000 E		call Randomize
+ 00000400  A1 000003C6 R			mov eax, N
+ 00000405  E8 00000000 E			call RandomRange; Poziv random generatora za opseg[0, N - 1]
+ 0000040A  8B F0				mov esi, eax; Dobijeni random rezultat smestamo u esi registar.
+
+ 0000040C  A1 000003C6 R			mov eax, N
+ 00000411  E8 00000000 E			call RandomRange
+ 00000416  8B F8				mov edi, eax; Dobijeni random rezultat smestamo u edi registar.
+
+ 00000418  8A B6 000003EE R			mov dh, startCell[esi]; Dobijene random rezultate koristimo kao indekse u nizu startCell
+ 0000041E  88 35 000003FC R			mov tempy, dh; esi za y koordinatu
+ 00000424  8A 97 000003EE R			mov dl, startCell[edi]
+ 0000042A  88 15 000003FB R			mov tempx, dl; I edi za x koordinatu.
+ 00000430  E8 00000000 E			call Gotoxy; Postavlja poziciju kursora na dobijene koordinate, da bi dato polje bilo obojeno u crveno.
+
+						.IF ebx == 0; Uslov za prvo polje sablona, da bi se smestio prvi element patternArray niza.
+ 00000435  0B DB	   *	    or	ebx, ebx
+ 00000437  75 0B	   *	    jne    @C001A
+ 00000439  66| 89 93				mov patternArray[ebx], dx; Trenutna pozicija kursora(koordinate dh, dl) se smestaju u patternArray niz.
+	   000003FD R
+ 00000440  43					inc ebx
+ 00000441  43					inc ebx; Inkrementira ebx na sledecu poziciju u nizu.
+						.ELSEIF
+ 00000442  EB 20	   *	    jmp    @C001C
+ 00000444		   *@C001A:
+ 00000444  8B CB				mov ecx, ebx;Ukoliko patternArray niz nije prazan, proverava se da li randomizacija daje dupli rezultat.
+
+ 00000446				alreadyExists:
+ 00000446  66| 3B 91			cmp dx, patternArray[ecx]; Poredi trenutnu poziciju kursora sa elementima niza patternArray.
+	   000003FD R
+ 0000044D  74 AC				jz patternLoop; Ukoliko je nadjen isti rezultat vraca se na pocetak randomizacije.
+ 0000044F  49					dec ecx; Dekrementuje ecx registar da bi prosao kroz citav niz.
+ 00000450  E2 F4				loop alreadyExists; ecx se dekrementuje samo jednom, jer loop to radi automatski drugi put.
+ 00000452  66| 3B 15				cmp dx, patternArray[0]; Poredi i nulti element, obzirom da loop prestaje nakon sto dodje do ecx = 0.
+	   000003FD R
+ 00000459  74 A0				jz patternLoop; Ukoliko je nadjen isti rezultat vraca se na pocetak randomizacije.
+
+ 0000045B  66| 89 93				mov patternArray[ebx], dx; Kada je dobijen jedinstven rezultat smesta se u novi element niza patternArray.
+	   000003FD R
+ 00000462  43					inc ebx
+ 00000463  43					inc ebx
+						.ENDIF
+ 00000464		   *@C001C:
+
+ 00000464  FF 35 000003FB R			push DWORD PTR tempx
+ 0000046A  FF 35 000003FC R			push DWORD PTR tempy
+ 00000470  E8 FFFFFB8B				call drawCell; Poziv procedure za crtanje polja sa dobijenim random koordinatama.
+ 00000475  83 C4 08				add esp, 8
+
+ 00000478  3B 1D 000003CA R			cmp ebx, P
+ 0000047E  0F 85 FFFFFF77			jne patternLoop; Petlja za randomizaciju sablona se ponavlja dok se ne stigne do 2 * K.
+
+ 00000484  B8 000007D0				mov eax, 2000
+ 00000489  E8 00000000 E			call Delay; Pauza za prikaz sablona.
+
+				; ------------------------------ - GUESSING--------------------------------------------------------
+ 0000048E  A1 000004C5 R			mov eax, colorW
+ 00000493  E8 00000000 E			call SetTextColor
+
+ 00000498  B6 0B				mov dh, 11
+ 0000049A  B2 0B				mov dl, 11
+ 0000049C  E8 00000000 E			call Gotoxy
+ 000004A1  FF 35 000003C6 R			push N
+ 000004A7  6A 0B				push 11
+ 000004A9  6A 0B				push 11
+ 000004AB  E8 FFFFFB88				call drawMatrix; Ponovno iscrtava praznu(belu) matricu.
+ 000004B0  83 C4 0C				add esp, 12
+
+ 000004B3  8A 35 000003E4 R			mov dh, jumpCell[0]
+ 000004B9  8A 15 000003E4 R			mov dl, jumpCell[0]
+ 000004BF  E8 00000000 E			call Gotoxy; Postavlja kursor na gornje levo polje matrice.
+ 000004C4  66| 89 15				mov currentPos, dx; Postavlja inicijalnu vrednost za trenutnu poziciju, odnosno gornje levo polje matrice.
+	   000003E1 R
+
+ 000004CB  66| FF 35				push currentPos
+	   000003E1 R
+ 000004D2  FF 35 000004C9 R			push colorY
+ 000004D8  E8 FFFFFC82				call colorCell; Polje na kom se nalazi kursor je obojeno u zutu boju.
+ 000004DD  83 C4 06				add esp, 6
+
+						INVOKE GetConsoleCursorInfo, outHandle,
+						ADDR cursorInfo
+ 000004E0  68 000004E1 R   *	    push   OFFSET cursorInfo
+ 000004E5  FF 35 000004D1 R *	    push   outHandle
+ 000004EB  E8 00000000 E   *	    call   GetConsoleCursorInfo
+
+ 000004F0  C7 05 000004E1 R			mov cursorInfo.dwSize, 100
+	   00000064
+						INVOKE SetConsoleCursorInfo, outHandle,
+						ADDR cursorInfo
+ 000004FA  68 000004E1 R   *	    push   OFFSET cursorInfo
+ 000004FF  FF 35 000004D1 R *	    push   outHandle
+ 00000505  E8 00000000 E   *	    call   SetConsoleCursorInfo
+ 0000050A  C7 05 000004E5 R			mov  cursorInfo.bVisible, 1
+	   00000001
+						INVOKE SetConsoleCursorInfo, outHandle,
+						ADDR cursorInfo;Vraca vidljivost kursora.
+ 00000514  68 000004E1 R   *	    push   OFFSET cursorInfo
+ 00000519  FF 35 000004D1 R *	    push   outHandle
+ 0000051F  E8 00000000 E   *	    call   SetConsoleCursorInfo
+
+ 00000524  BF 00000000				mov edi, 0
+						
+				; ------------------------------ MOVING-----------------------------------------------------------
+				.REPEAT
+ 00000529		   *@C001F:
+
+ 00000529			LookForKey :
+ 00000529  B8 00000032			mov  eax, 50
+ 0000052E  E8 00000000 E			call Delay
+
+ 00000533  E8 00000000 E			call ReadKey; Ceka unos sa tastature.
+ 00000538  74 EF				jz   LookForKey; Petlja se ponavlja dok god korisnik ne izvrsi unos sa tastature.
+ 0000053A  66| 89 15				mov userMove, dx; Korisnikov unos se pamti u promenljivu userMove.
+	   000004C1 R
+
+ 00000541  A1 000003C6 R			mov eax, N
+ 00000546  83 E8 01				sub eax, 1
+ 00000549  8B F0				mov esi, eax; esi registar se postavlja na vrednost N - 1.
+
+						; Sva pomeranja(levo, gore, desno, dole) su radjena po istom principu, tako da ce biti detaljno iskomentarisano
+						; samo jedno od njih.
+
+						; ------------------------------ - LEFT------------------------------------------------------------
+						.IF userMove == 025h; Virtual Key VK_LEFT = 25H
+ 0000054B  66| 83 3D
+	   000004C1 R 25   *	    cmp    userMove, 025h
+ 00000553  0F 85 000000B9  *	    jne    @C0020
+
+ 00000559  66| 8B 15				mov dx, currentPos
+	   000003E1 R
+ 00000560  3A 15 000003E4 R			cmp dl, jumpCell[0]; Poredi vrednost trenutne kolone sa prvom koordinatom iz jumpCell, odnosno krajnje
+						; levom kolonom.
+ 00000566  0F 84 00000087			jz stopLeft; Ukoliko je vrednost poredjenja jednakost, ne krece se dalje ulevo.
+
+ 0000056C  66| 8B C2				mov ax, dx
+ 0000056F  FE CC				dec ah
+ 00000571  FE C8				dec al; Smestanjem dx u ax registar, i dekrementovanjem ah i al dela dobijamo odgovarajuci gornji levi polozaj polja
+						; za datu poziciju kursora, odnosno srediste tog istog polja.
+ 00000573  BE 00000000				mov esi, 0; Inicijalizovanje indeksa esi na 0, kojim prolazimo kroz niz polja koje je korisnik selektovao.
+
+						.REPEAT
+ 00000578		   *@C0022:
+						.IF userArray[esi] == ax
+ 00000578  66| 39 86
+	   0000045F R	   *	    cmp    userArray + [esi], ax
+ 0000057F  75 07	   *	    jne    @C0023
+ 00000581  C6 05 000003FA R			mov previousRed, 1; Ukoliko je data vrednost koordinata u nizu korisnikovih unosa, pamti se stanje u
+	   01
+						; indikator previousRed.Razlog imenovanja previous(prethodni), jeste taj sto ce do kraja if petlje za odredjeni unos trenutna pozicija biti sacuvana kao prethodna.
+						.ENDIF
+ 00000588		   *@C0023:
+ 00000588  2C 04				sub al, 4; Vrsi proveru unapred i za sledecu poziciju unosa, za istu vrednost esi registra.
+						.IF userArray[esi] == ax
+ 0000058A  66| 39 86
+	   0000045F R	   *	    cmp    userArray + [esi], ax
+ 00000591  75 07	   *	    jne    @C0025
+ 00000593  C6 05 000003E3 R			mov currentRed, 1; Ukoliko se vrednost koordinata nalazi u nizu korisnikovih unosa, pamti se stanje u
+	   01
+						; indikator currentRed.Razlog imenovanja current(trenutni), jeste taj sto ce do kraja if petlje ta
+						; pozicija biti u promenljivoj currentPos.
+							.ENDIF
+ 0000059A		   *@C0025:
+ 0000059A  04 04					add al, 4; Vraca al za proveru previousRed indikatora.
+ 0000059C  46						inc esi
+ 0000059D  46						inc esi
+							.UNTIL esi >= P; Nastavlja dalje kroz niz dok ne dodje do maksimuma korisnikovih unosa.
+ 0000059E  3B 35 000003CA R *	    cmp    esi, P
+ 000005A4  72 D2	   *	    jb	@C0022
+
+ 000005A6  66| 89 15					mov previousPos, dx; Trenutnu poziciju pamti kao prethodnu.
+	   000003F8 R
+ 000005AD  80 EA 04					sub dl, 4;Vrednost kolone za 4 manja od prethodne je pomeranje ulevo.
+ 000005B0  66| 89 15					mov currentPos, dx; U novu trenutnu poziciju se pamti ta pozicija (srediste polja levo od trenutnog)
+	   000003E1 R
+
+							.IF previousRed != 1
+ 000005B7  80 3D 000003FA R
+	   01		   *	    cmp    previousRed, 001h
+ 000005BE  74 15	   *	    je	@C0028
+ 000005C0  66| FF 35					push previousPos
+	   000003F8 R
+ 000005C7  FF 35 000004C5 R				push colorW
+ 000005CD  E8 FFFFFB8D				call colorCell; Ukoliko polje sa kog se pomera kursor nije vec selektovano(crveno)
+						; ono se boji u belu boju pozivom procedure colorCell.
+ 000005D2  83 C4 06					add esp, 6
+							.ENDIF
+							.IF currentRed != 1
+ 000005D5		   *@C0028:
+ 000005D5  80 3D 000003E3 R
+	   01		   *	    cmp    currentRed, 001h
+ 000005DC  74 15	   *	    je	@C002A
+ 000005DE  66| FF 35					push currentPos
+	   000003E1 R
+ 000005E5  FF 35 000004C9 R				push colorY
+ 000005EB  E8 FFFFFB6F				call colorCell; Ukoliko polje na koje se pomera kursor nije vec selektovano(crveno)
+						; ono se boji u zutu boju pozivom procedure colorCell.
+ 000005F0  83 C4 06					add esp, 6
+							.ENDIF
+
+ 000005F3						stopLeft : ; Labela na koju se skace ukoliko nema pomeranja dalje ulevo, i zavrsetak za gornje if petlje
+ 000005F3		   *@C002A:
+ 000005F3  66| 8B 15					mov dx, currentPos
+	   000003E1 R
+ 000005FA  E8 00000000 E				call Gotoxy; Kursor se postavlja na vrednost trenutne pozicije.
+ 000005FF  C6 05 000003FA R				mov previousRed, 0
+	   00
+ 00000606  C6 05 000003E3 R				mov currentRed, 0; Indikatori za selektovanje se vracaju na 0 za sledeci potez.
+	   00
+
+				; ------------------------------UP--------------------------------------------------------------
+							.ELSEIF userMove == 026h; VK_UP = 26H
+ 0000060D  E9 00000349	   *	    jmp    @C002C
+ 00000612		   *@C0020:
+ 00000612  66| 83 3D
+	   000004C1 R 26   *	    cmp    userMove, 026h
+ 0000061A  0F 85 000000BB  *	    jne    @C002D
+ 00000620  66| 8B 15					mov dx, currentPos
+	   000003E1 R
+ 00000627  3A 35 000003E4 R			cmp dh, jumpCell[0];  Poredi vrednost trenutnog reda sa prvom koordinatom niza jumpCell
+						; odnosno najvisim redom.
+ 0000062D  0F 84 00000089				jz stopUp
+
+ 00000633  66| 8B C2					mov ax, dx
+ 00000636  FE CC					dec ah
+ 00000638  FE C8					dec al
+ 0000063A  BE 00000000					mov esi, 0
+
+							.REPEAT
+ 0000063F		   *@C002F:
+							.IF userArray[esi] == ax
+ 0000063F  66| 39 86
+	   0000045F R	   *	    cmp    userArray + [esi], ax
+ 00000646  75 07	   *	    jne    @C0030
+ 00000648  C6 05 000003FA R				mov previousRed, 1
+	   01
+							.ENDIF
+ 0000064F		   *@C0030:
+ 0000064F  80 EC 04					sub ah, 4
+							.IF userArray[esi] == ax
+ 00000652  66| 39 86
+	   0000045F R	   *	    cmp    userArray + [esi], ax
+ 00000659  75 07	   *	    jne    @C0032
+ 0000065B  C6 05 000003E3 R				mov currentRed, 1
+	   01
+							.ENDIF
+ 00000662		   *@C0032:
+ 00000662  80 C4 04					add ah, 4
+ 00000665  46						inc esi
+ 00000666  46						inc esi
+							.UNTIL esi >= P
+ 00000667  3B 35 000003CA R *	    cmp    esi, P
+ 0000066D  72 D0	   *	    jb	@C002F
+
+ 0000066F  66| 89 15					mov previousPos, dx
+	   000003F8 R
+ 00000676  80 EE 04					sub dh, 4; Vrednost reda za 4 manja od trenutnog je pomeranje na gore.
+ 00000679  66| 89 15					mov currentPos, dx
+	   000003E1 R
+
+							.IF previousRed != 1
+ 00000680  80 3D 000003FA R
+	   01		   *	    cmp    previousRed, 001h
+ 00000687  74 15	   *	    je	@C0035
+ 00000689  66| FF 35					push previousPos
+	   000003F8 R
+ 00000690  FF 35 000004C5 R				push colorW
+ 00000696  E8 FFFFFAC4					call colorCell
+ 0000069B  83 C4 06					add esp, 6
+							.ENDIF
+							
+							.IF currentRed != 1
+ 0000069E		   *@C0035:
+ 0000069E  80 3D 000003E3 R
+	   01		   *	    cmp    currentRed, 001h
+ 000006A5  74 15	   *	    je	@C0037
+ 000006A7  66| FF 35					push currentPos
+	   000003E1 R
+ 000006AE  FF 35 000004C9 R				push colorY
+ 000006B4  E8 FFFFFAA6					call colorCell
+ 000006B9  83 C4 06					add esp, 6
+							.ENDIF
+ 000006BC					stopUp :
+ 000006BC		   *@C0037:
+ 000006BC  66| 8B 15					mov dx, currentPos
+	   000003E1 R
+ 000006C3  E8 00000000 E					call Gotoxy
+ 000006C8  C6 05 000003FA R					mov previousRed, 0
+	   00
+ 000006CF  C6 05 000003E3 R					mov currentRed, 0
+	   00
+
+				; ------------------------------ - RIGHT----------------------------------------------------------
+								.ELSEIF userMove == 027h; VK_RIGHT = 27H
+ 000006D6  E9 00000280	   *	    jmp    @C0039
+ 000006DB		   *@C002D:
+ 000006DB  66| 83 3D
+	   000004C1 R 27   *	    cmp    userMove, 027h
+ 000006E3  0F 85 000000B9  *	    jne    @C003A
+ 000006E9  66| 8B 15						mov dx, currentPos
+	   000003E1 R
+ 000006F0  3A 96 000003E4 R					cmp dl, jumpCell[esi]; Poredi vrednost trenutne kolone sa N - 1 - om koordinatom niza jumpCell, odnosno krajnje desnim redom.
+ 000006F6  0F 84 00000087					jz stopRight
+
+ 000006FC  66| 8B C2						mov ax, dx
+ 000006FF  FE CC						dec ah
+ 00000701  FE C8						dec al
+ 00000703  BE 00000000						mov esi, 0
+
+								.REPEAT
+ 00000708		   *@C003C:
+								.IF userArray[esi] == ax
+ 00000708  66| 39 86
+	   0000045F R	   *	    cmp    userArray + [esi], ax
+ 0000070F  75 07	   *	    jne    @C003D
+ 00000711  C6 05 000003FA R					mov previousRed, 1
+	   01
+								.ENDIF
+ 00000718		   *@C003D:
+ 00000718  04 04						add al, 4
+								.IF userArray[esi] == ax
+ 0000071A  66| 39 86
+	   0000045F R	   *	    cmp    userArray + [esi], ax
+ 00000721  75 07	   *	    jne    @C003F
+ 00000723  C6 05 000003E3 R					mov currentRed, 1
+	   01
+								.ENDIF
+ 0000072A		   *@C003F:
+ 0000072A  2C 04						sub al, 4
+ 0000072C  46							inc esi
+ 0000072D  46							inc esi
+								.UNTIL esi >= P
+ 0000072E  3B 35 000003CA R *	    cmp    esi, P
+ 00000734  72 D2	   *	    jb	@C003C
+
+ 00000736  66| 89 15						mov previousPos, dx
+	   000003F8 R
+ 0000073D  80 C2 04						add dl, 4;Vrednost kolone za 4 veca od trenutne je pomeranje udesno.
+ 00000740  66| 89 15					mov currentPos, dx
+	   000003E1 R
+
+							.IF previousRed != 1
+ 00000747  80 3D 000003FA R
+	   01		   *	    cmp    previousRed, 001h
+ 0000074E  74 15	   *	    je	@C0042
+ 00000750  66| FF 35					push previousPos
+	   000003F8 R
+ 00000757  FF 35 000004C5 R				push colorW
+ 0000075D  E8 FFFFF9FD					call colorCell
+ 00000762  83 C4 06					add esp, 6
+							.ENDIF 
+							
+							.IF currentRed != 1
+ 00000765		   *@C0042:
+ 00000765  80 3D 000003E3 R
+	   01		   *	    cmp    currentRed, 001h
+ 0000076C  74 15	   *	    je	@C0044
+ 0000076E  66| FF 35					push currentPos
+	   000003E1 R
+ 00000775  FF 35 000004C9 R				push colorY
+ 0000077B  E8 FFFFF9DF					call colorCell
+							
+ 00000780  83 C4 06					add esp, 6
+							.ENDIF
+
+ 00000783						stopRight :
+ 00000783		   *@C0044:
+ 00000783  66| 8B 15					mov dx, currentPos
+	   000003E1 R
+ 0000078A  E8 00000000 E					call Gotoxy
+ 0000078F  C6 05 000003FA R					mov previousRed, 0
+	   00
+ 00000796  C6 05 000003E3 R					mov currentRed, 0
+	   00
+
+				; ------------------------------DOWN------------------------------------------------------------
+								.ELSEIF userMove == 028h; VK_DOWN = 28H
+ 0000079D  E9 000001B9	   *	    jmp    @C0046
+ 000007A2		   *@C003A:
+ 000007A2  66| 83 3D
+	   000004C1 R 28   *	    cmp    userMove, 028h
+ 000007AA  0F 85 000000BB  *	    jne    @C0047
+
+ 000007B0  66| 8B 15						mov dx, currentPos
+	   000003E1 R
+ 000007B7  3A B6 000003E4 R					cmp dh, jumpCell[esi]; Poredi vrednost trenutnog reda sa N - 1 - om koordinatom niza jumpCell
+								; odnosno najnizim redom.
+ 000007BD  0F 84 00000089					jz stopDown
+
+ 000007C3  66| 8B C2						mov ax, dx
+ 000007C6  FE CC						dec ah
+ 000007C8  FE C8						dec al
+ 000007CA  BE 00000000						mov esi, 0
+
+								.REPEAT
+ 000007CF		   *@C0049:
+								.IF userArray[esi] == ax
+ 000007CF  66| 39 86
+	   0000045F R	   *	    cmp    userArray + [esi], ax
+ 000007D6  75 07	   *	    jne    @C004A
+ 000007D8  C6 05 000003FA R					mov previousRed, 1
+	   01
+								.ENDIF
+ 000007DF		   *@C004A:
+ 000007DF  80 C4 04						add ah, 4
+								.IF userArray[esi] == ax
+ 000007E2  66| 39 86
+	   0000045F R	   *	    cmp    userArray + [esi], ax
+ 000007E9  75 07	   *	    jne    @C004C
+ 000007EB  C6 05 000003E3 R					mov currentRed, 1
+	   01
+								.ENDIF
+ 000007F2		   *@C004C:
+ 000007F2  80 EC 04						sub ah, 4
+ 000007F5  46							inc esi
+ 000007F6  46							inc esi
+								.UNTIL esi >= P
+ 000007F7  3B 35 000003CA R *	    cmp    esi, P
+ 000007FD  72 D0	   *	    jb	@C0049
+
+ 000007FF  66| 89 15						mov previousPos, dx
+	   000003F8 R
+ 00000806  80 C6 04						add dh, 4;Vrednost reda za 4 veca od trenutne je pomeranje na dole.
+ 00000809  66| 89 15						mov currentPos, dx
+	   000003E1 R
+
+								.IF previousRed != 1
+ 00000810  80 3D 000003FA R
+	   01		   *	    cmp    previousRed, 001h
+ 00000817  74 15	   *	    je	@C004F
+ 00000819  66| FF 35						push previousPos
+	   000003F8 R
+ 00000820  FF 35 000004C5 R					push colorW
+ 00000826  E8 FFFFF934						call colorCell
+ 0000082B  83 C4 06						add esp, 6
+								
+								.ENDIF
+								.IF currentRed != 1
+ 0000082E		   *@C004F:
+ 0000082E  80 3D 000003E3 R
+	   01		   *	    cmp    currentRed, 001h
+ 00000835  74 15	   *	    je	@C0051
+ 00000837  66| FF 35						push currentPos
+	   000003E1 R
+ 0000083E  FF 35 000004C9 R					push colorY
+ 00000844  E8 FFFFF916						call colorCell
+
+ 00000849  83 C4 06						add esp, 6
+							.ENDIF
+ 0000084C						stopDown :
+ 0000084C		   *@C0051:
+ 0000084C  66| 8B 15						mov dx, currentPos
+	   000003E1 R
+ 00000853  E8 00000000 E						call Gotoxy
+ 00000858  C6 05 000003FA R						mov previousRed, 0
+	   00
+ 0000085F  C6 05 000003E3 R						mov currentRed, 0
+	   00
+
+				; ------------------------------SPACE BAR------------------------------------------------------ -
+									.ELSEIF userMove == 020h; VK_SPACE = 20H
+ 00000866  E9 000000F0	   *	    jmp    @C0053
+ 0000086B		   *@C0047:
+ 0000086B  66| 83 3D
+	   000004C1 R 20   *	    cmp    userMove, 020h
+ 00000873  0F 85 000000E2  *	    jne    @C0054
+
+ 00000879  66| 8B 15							mov dx, currentPos
+	   000003E1 R
+ 00000880  FE CA							dec dl
+ 00000882  FE CE							dec dh
+ 00000884  66| 89 15							mov userTemp, dx; Gornji levi ugao polja na kom je trenutno kursor se cuva u pomocnu
+	   000004C3 R
+									; promenljivu userTemp.
+
+ 0000088B  BB 00000000							mov ebx, 0
+
+									.REPEAT
+ 00000890		   *@C0056:
+ 00000890  66| 8B 83							mov ax, userArray[ebx]; Smesta u ax registar element niza userArray sa indeksom ebx.
+	   0000045F R
+
+									.IF userTemp != ax
+ 00000897  66| 39 05
+	   000004C3 R	   *	    cmp    userTemp, ax
+ 0000089E  74 04	   *	    je	@C0057
+ 000008A0  43								inc ebx
+ 000008A1  43								inc ebx
+
+									.ELSEIF
+ 000008A2  EB 07	   *	    jmp    @C0059
+ 000008A4		   *@C0057:
+ 000008A4  8B 1D 000003CA R						mov ebx, P
+ 000008AA  43								inc ebx
+
+									.ENDIF
+									.UNTIL ebx >= P
+ 000008AB		   *@C0059:
+ 000008AB  3B 1D 000003CA R *	    cmp    ebx, P
+ 000008B1  72 DD	   *	    jb	@C0056
+
+									.IF ebx == P
+ 000008B3  3B 1D 000003CA R *	    cmp    ebx, P
+ 000008B9  75 47	   *	    jne    @C005D
+ 000008BB  66| 8B 15							mov dx, userTemp
+	   000004C3 R
+ 000008C2  E8 00000000 E						call Gotoxy
+ 000008C7  66| 89 97							mov userArray[edi], dx
+	   0000045F R
+ 000008CE  47								inc edi
+ 000008CF  47								inc edi
+
+ 000008D0  A1 000004CD R						mov eax, colorR
+ 000008D5  E8 00000000 E						call SetTextColor
+
+ 000008DA  88 35 000003FC R						mov tempy, dh
+ 000008E0  88 15 000003FB R						mov tempx, dl
+ 000008E6  FF 35 000003FB R						push DWORD PTR tempx
+ 000008EC  FF 35 000003FC R						push DWORD PTR tempy
+ 000008F2  E8 FFFFF709							call drawCell; poziva proceduru za iscrtavanje polja crvenom bojom
+ 000008F7  83 C4 08							add esp, 8
+
+ 000008FA  FF 05 000003D6 R						inc hits; Povecava broj zabelezenih selektovanja.
+									.ELSE
+ 00000900  EB 02	   *	    jmp    @C005F
+ 00000902		   *@C005D:
+ 00000902  EB 4B							jmp skip
+									.ENDIF
+
+ 00000904		   *@C005F:
+ 00000904  B9 00000000							mov ecx, 0
+
+					; ------------------------------CHECK PATTERN-------------------------------------------------- -
+ 00000909  80 3D 000003DF R						cmp mistake, 1; Ukoliko je zabelezena greska provera sablona se preskace u pozadini.
+	   01
+									;Korisnik i dalje ima pravo na unos sablona.
+ 00000910  74 3D							jz skip
+ 00000912							CheckPattern: 		
+ 00000912  66| 3B 91						cmp dx, patternArray[ecx]; poredi vrednost dx registra, koja u ovom trenutku sadrzi vrednost gornjeg levog ugla polja sa nizom patternArray.
+	   000003FD R
+ 00000919  74 1D							jz oneCorrect; Ukoliko je pronadjena saglasnost, skace se na labelu oneCorrect.
+ 0000091B  41								inc ecx
+ 0000091C  41								inc ecx
+ 0000091D  3B 0D 000003CA R						cmp ecx, P
+ 00000923  75 ED							jnz CheckPattern; Petlja se ponavlja dok ecx registar ne dostigne vrednost P, odnosno dupliranu vrednost velicine sablona
+									; Posto su nizovi velicine WORD.
+
+ 00000925  C7 05 000003D2 R						mov correct, 0
+	   00000000
+ 0000092F  C6 05 000003DF R						mov mistake, 1; Ukoliko nije pronadjena saglasnost, postavlja se indikator greske.
+	   01
+ 00000936  EB 17							jmp skip;Nakon postavljanja indikatora greske, preskace se ubrajanje tacnog pogotka bezuslovnim skokom.
+
+				; ------------------------------ ONE CORRECT GUESS -----------------------------------------------
+ 00000938			oneCorrect:			
+ 00000938  83 05 000003D2 R					add correct, 1; Inkrementuje vrednost pogodaka za 1 nakon sto je pronadjena saglasnost u proveri unosa.
+	   01
+
+ 0000093F  8B 0D 000003BE R						mov ecx, K
+
+									.IF ecx == hits
+ 00000945  3B 0D 000003D6 R *	    cmp    ecx, hits
+ 0000094B  75 02	   *	    jne    @C0060
+ 0000094D  EB 2A							jmp nextLevel; Ukoliko se u ovom delu programa dodje do K - og selektovanja
+									; znaci da je citav sablon unet tacno i prelazi se na sledeci nivo.
+							.ENDIF
+							
+ 0000094F							skip:
+ 0000094F		   *@C0060:
+ 0000094F  66| 8B 15						mov dx, currentPos
+	   000003E1 R
+ 00000956  E8 00000000 E						call Gotoxy
+									.ENDIF
+
+ 0000095B		   *@C0054:
+ 0000095B		   *@C0053:
+ 0000095B		   *@C0046:
+ 0000095B		   *@C0039:
+ 0000095B		   *@C002C:
+ 0000095B  A1 000003BE R						mov eax, K
+
+									.UNTIL 	hits == eax; Citava petlja unosa sablona od strane korisnika se ponavlja
+ 00000960  39 05 000003D6 R *	    cmp    hits, eax
+ 00000966  0F 85 FFFFFBBD  *	    jne    @C001F
+									; dok se ne dostigne K selektovanja polja.
+
+ 0000096C  80 3D 000003DF R						cmp mistake, 1; Ukoliko je nakon citavog unosa indikator greske postavljen
+	   01
+									; preskace se na labelu wrongAnswer.
+ 00000973  0F 84 000000C4	jz wrongAnswer
+
+				; ------------------------------ NEXT LEVEL ------------------------------------------------------
+ 00000979			nextLevel:
+ 00000979  C7 05 000004E5 R					mov  cursorInfo.bVisible, 0
+	   00000000
+									INVOKE SetConsoleCursorInfo, outHandle,
+									ADDR cursorInfo; Iskljucuje se vidljivost kursora.
+ 00000983  68 000004E1 R   *	    push   OFFSET cursorInfo
+ 00000988  FF 35 000004D1 R *	    push   outHandle
+ 0000098E  E8 00000000 E   *	    call   SetConsoleCursorInfo
+
+ 00000993  80 05 000003E0 R						add points, 10; Vrednost bodova se uvecava za 10.
+	   0A
+ 0000099A  FE 05 000003DA R						inc levelNo; Povecava se vrednost nivoa.
+
+ 000009A0  B8 000003E8							mov eax, 1000
+ 000009A5  E8 00000000 E						call Delay
+
+ 000009AA  C7 05 000003D6 R						mov hits, 0
+	   00000000
+ 000009B4  C7 05 000003D2 R						mov correct, 0; Vrednosti broja selektovanja i broja tacnih pogodaka se postavljaju na 0.
+	   00000000
+
+ 000009BE  B9 00000000							mov ecx, 0
+									.REPEAT
+ 000009C3		   *@C0063:
+
+ 000009C3  66| C7 81							mov userArray[ecx], 0
+	   0000045F R
+	   0000
+ 000009CC  66| C7 81							mov patternArray[ecx], 0
+	   000003FD R
+	   0000
+ 000009D5  41								inc ecx
+ 000009D6  41								inc ecx
+									.UNTIL ecx == P; Vrednosti elemenata niza sablona i niza korisnikovih unosa se postavljaju na 0.
+ 000009D7  3B 0D 000003CA R *	    cmp    ecx, P
+ 000009DD  75 E4	   *	    jne    @C0063
+
+									.IF levelNo < 6
+ 000009DF  80 3D 000003DA R
+	   06		   *	    cmp    levelNo, 006h
+ 000009E6  73 28	   *	    jae    @C0065
+ 000009E8  E8 00000000 E						call Clrscr; Ukoliko je broj nivoa manji od 6 {1..5}, postavlja se prelazni ekran sa
+									; obavestenjem o prelasku na sledeci nivo.
+ 000009ED  FF 35 000004C9 R						push colorY; Brisanjem sadrzaja ekrana i pozivanjem procedure changeColorMsg za ispis obavestenja.
+ 000009F3  FF 35 000004C5 R						push colorW
+ 000009F9  68 0000006B R						push offset nextMsg
+ 000009FE  E8 FFFFF71E							call changeColorMsg
+ 00000A03  83 C4 0C							add esp, 12
+ 00000A06  B8 000003E8							mov eax, 1000
+ 00000A0B  E8 00000000 E						call Delay
+									.ENDIF
+ 00000A10		   *@C0065:
+
+ 00000A10  80 3D 000003DA R						cmp levelNo, 6
+	   06
+ 00000A17  0F 85 FFFFF8FA						jnz gameLoop; Citava petlja randomizovanja sablona, iscrtavanja matrice, sablona
+									; i korisnikovog unosa se ponavlja dok je vrednost nivoa manja od 6.
+
+				; ------------------------------LEVEL_5 + ---------------------------------------------- ------
+									.IF points == 50
+ 00000A1D  80 3D 000003E0 R
+	   32		   *	    cmp    points, 032h
+ 00000A24  75 17	   *	    jne    @C0067
+ 00000A26  68 0000036A R						push offset errorMsg
+ 00000A2B  68 00000088 R						push offset playMsg
+ 00000A30  68 000000F1 R						push offset winMsg
+ 00000A35  E8 FFFFF67A							call endWindow; Ukoliko je zavrsen peti nivo, poziva se zavrsni ekran sa cestitkom
+									; i pitanjem da li korisnik zeli da igra ponovo.
+ 00000A3A  83 C4 0C			add esp, 12
+				.ENDIF
+ 00000A3D		   *@C0067:
+
+				; ------------------------------ WRONG_GUESS ---------------------------------------------- ------
+ 00000A3D			wrongAnswer :
+ 00000A3D  68 0000036A R					push offset errorMsg
+ 00000A42  68 00000088 R						push offset playMsg
+ 00000A47  68 000003AF R						push offset gameOverMsg
+ 00000A4C  E8 FFFFF663							call endWindow; Ukoliko je korisnikov uneti sablon pogresan, poziva se zavrsni ekran sa
+									; obavestenjem da je igra gotova i pitanjem da li korisnik zeli da igra ponovo.
+ 00000A51  83 C4 0C							add esp, 12
+
+					; ------------------------------RESTART---------------------------------------------- ------
+ 00000A54								Restart::
+ 00000A54  C7 05 000003D6 R						mov hits, 0
+	   00000000
+ 00000A5E  C7 05 000003D2 R						mov correct, 0
+	   00000000
+ 00000A68  C6 05 000003DF R						mov mistake, 0
+	   00
+ 00000A6F  C6 05 000003DA R						mov levelNo, 1
+	   01
+ 00000A76  C6 05 000003E0 R						mov points, 0
+	   00
+ 00000A7D  B9 00000000							mov ecx, 0
+									.REPEAT
+ 00000A82		   *@C0069:
+
+ 00000A82  66| C7 81							mov userArray[ecx], 0
+	   0000045F R
+	   0000
+ 00000A8B  66| C7 81							mov patternArray[ecx], 0
+	   000003FD R
+	   0000
+ 00000A94  41								inc ecx
+ 00000A95  41								inc ecx
+									.UNTIL ecx == P
+ 00000A96  3B 0D 000003CA R *	    cmp    ecx, P
+ 00000A9C  75 E4	   *	    jne    @C0069
+ 00000A9E  E9 FFFFF735							jmp gameStart; Sve vrednosti indikatora i elementi nizova se postavljaju na 0, i skace se na labelu
+									; gameStart od koje se igra pocinje ponovo, sa ispisom pravila i unosom velicine matrice.
+
+ 00000AA3  B8 000003E8							mov eax, 1000
+ 00000AA8  E8 00000000 E						call Delay
+
+				; ------------------------------END_GAME---------------------------------------------- ------
+ 00000AAD								endGame::
+									exit
+ 00000AAD  6A 00	   *	    push   +000000000h
+ 00000AAF  E8 00000000 E   *	    call   ExitProcess
+ 00000AB4								main ENDP;Zavrsetak igre i izlazak iz main procedure.
+				END main
+Microsoft (R) Macro Assembler Version 14.00.24210.0	    09/10/17 23:41:45
+patternmemory.asm					     Symbols 2 - 1
+
+
+
+
+Macros:
+
+                N a m e                 Type
+
+IsDefined  . . . . . . . . . . .	Func
+Startup  . . . . . . . . . . . .	Proc
+mDumpMem . . . . . . . . . . . .	Proc
+mDump  . . . . . . . . . . . . .	Proc
+mGotoxy  . . . . . . . . . . . .	Proc
+mReadString  . . . . . . . . . .	Proc
+mShowRegister  . . . . . . . . .	Proc
+mShow  . . . . . . . . . . . . .	Proc
+mWriteLn . . . . . . . . . . . .	Proc
+mWriteSpace  . . . . . . . . . .	Proc
+mWriteString . . . . . . . . . .	Proc
+mWrite . . . . . . . . . . . . .	Proc
+
+
+Structures and Unions:
+
+                N a m e                  Size
+                                         Offset      Type
+
+CONSOLE_CURSOR_INFO  . . . . . .	 00000008
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  bVisible . . . . . . . . . . .	 00000004	 DWord
+CONSOLE_SCREEN_BUFFER_INFO . . .	 00000016
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCursorPosition . . . . . . .	 00000004	 DWord
+  wAttributes  . . . . . . . . .	 00000008	 Word
+  srWindow . . . . . . . . . . .	 0000000A	 QWord
+  dwMaximumWindowSize  . . . . .	 00000012	 DWord
+COORD  . . . . . . . . . . . . .	 00000004
+  X  . . . . . . . . . . . . . .	 00000000	 Word
+  Y  . . . . . . . . . . . . . .	 00000002	 Word
+FILETIME . . . . . . . . . . . .	 00000008
+  loDateTime . . . . . . . . . .	 00000000	 DWord
+  hiDateTime . . . . . . . . . .	 00000004	 DWord
+FOCUS_EVENT_RECORD . . . . . . .	 00000004
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+FPU_ENVIRON  . . . . . . . . . .	 0000001C
+  controlWord  . . . . . . . . .	 00000000	 Word
+  statusWord . . . . . . . . . .	 00000004	 Word
+  tagWord  . . . . . . . . . . .	 00000008	 Word
+  instrPointerOffset . . . . . .	 0000000C	 DWord
+  instrPointerSelector . . . . .	 00000010	 DWord
+  operandPointerOffset . . . . .	 00000014	 DWord
+  operandPointerSelector . . . .	 00000018	 Word
+INPUT_RECORD . . . . . . . . . .	 00000014
+  EventType  . . . . . . . . . .	 00000000	 Word
+  Event  . . . . . . . . . . . .	 00000004	 XmmWord
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+KEY_EVENT_RECORD . . . . . . . .	 00000010
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+MENU_EVENT_RECORD  . . . . . . .	 00000004
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+MOUSE_EVENT_RECORD . . . . . . .	 00000010
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+SMALL_RECT . . . . . . . . . . .	 00000008
+  Left . . . . . . . . . . . . .	 00000000	 Word
+  Top  . . . . . . . . . . . . .	 00000002	 Word
+  Right  . . . . . . . . . . . .	 00000004	 Word
+  Bottom . . . . . . . . . . . .	 00000006	 Word
+SYSTEMTIME . . . . . . . . . . .	 00000010
+  wYear  . . . . . . . . . . . .	 00000000	 Word
+  wMonth . . . . . . . . . . . .	 00000002	 Word
+  wDayOfWeek . . . . . . . . . .	 00000004	 Word
+  wDay . . . . . . . . . . . . .	 00000006	 Word
+  wHour  . . . . . . . . . . . .	 00000008	 Word
+  wMinute  . . . . . . . . . . .	 0000000A	 Word
+  wSecond  . . . . . . . . . . .	 0000000C	 Word
+  wMilliseconds  . . . . . . . .	 0000000E	 Word
+WINDOW_BUFFER_SIZE_RECORD  . . .	 00000004
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000503 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000AB4 Para	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToDosDateTime  . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToSystemTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FlushConsoleInputBuffer  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FormatMessageA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandLineA  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandTail . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCP . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleScreenBufferInfo . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetDateTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetFileTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetKeyState  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLastError . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMaxXY . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMseconds  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetNumberOfConsoleInputEvents  .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetProcessHeap . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBox . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadChar . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleA . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadDec  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFile . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFloat  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFromFile . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadHex  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleScreenBufferSize . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTextAttribute  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTitleA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleWindowInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_copy . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleA  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputAttribute  . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputCharacterA . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteDec . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFloat . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHexB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHex . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteInt . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+changeColorMsg . . . . . . . . .	P Near	 00000121 _TEXT	Length= 00000021 Public C
+  msg  . . . . . . . . . . . . .	DWord	 bp + 00000008
+  color1 . . . . . . . . . . . .	DWord	 bp + 0000000C
+  color2 . . . . . . . . . . . .	DWord	 bp + 00000010
+colorCell  . . . . . . . . . . .	P Near	 0000015F _TEXT	Length= 0000003B Public C
+  color  . . . . . . . . . . . .	DWord	 bp + 00000008
+  t  . . . . . . . . . . . . . .	Word	 bp + 0000000C
+  tx . . . . . . . . . . . . . .	Byte	 bp - 00000001
+  ty . . . . . . . . . . . . . .	Byte	 bp - 00000002
+drawCell . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000038 Public C
+  y  . . . . . . . . . . . . . .	Byte	 bp + 00000008
+  x  . . . . . . . . . . . . . .	Byte	 bp + 0000000C
+  row  . . . . . . . . . . . . .	L Near	 0000000B _TEXT	
+drawMatrix . . . . . . . . . . .	P Near	 00000038 _TEXT	Length= 0000007C Public C
+  a  . . . . . . . . . . . . . .	Byte	 bp + 00000008
+  b  . . . . . . . . . . . . . .	Byte	 bp + 0000000C
+  M  . . . . . . . . . . . . . .	DWord	 bp + 00000010
+  y1 . . . . . . . . . . . . . .	Byte	 bp - 00000001
+  x1 . . . . . . . . . . . . . .	Byte	 bp - 00000002
+  xcnt . . . . . . . . . . . . .	Byte	 bp - 00000003
+  ycnt . . . . . . . . . . . . .	Byte	 bp - 00000004
+  rows . . . . . . . . . . . . .	L Near	 0000004F _TEXT	
+  row  . . . . . . . . . . . . .	L Near	 00000053 _TEXT	
+endWindow  . . . . . . . . . . .	P Near	 000000B4 _TEXT	Length= 0000006D Public C
+  msg1 . . . . . . . . . . . . .	DWord	 bp + 00000008
+  msg2 . . . . . . . . . . . . .	DWord	 bp + 0000000C
+  msg3 . . . . . . . . . . . . .	DWord	 bp + 00000010
+main . . . . . . . . . . . . . .	P Near	 0000019A _TEXT	Length= 0000091A Public STDCALL
+  gameStart  . . . . . . . . . .	L Near	 000001D8 _TEXT	
+  diffInput  . . . . . . . . . .	L Near	 00000214 _TEXT	
+  CUSTOM . . . . . . . . . . . .	L Near	 0000024A _TEXT	
+  matrixInput  . . . . . . . . .	L Near	 0000024C _TEXT	
+  RANDOM . . . . . . . . . . . .	L Near	 00000288 _TEXT	
+  skipRandom . . . . . . . . . .	L Near	 000002D8 _TEXT	
+  skipOdd  . . . . . . . . . . .	L Near	 000002FF _TEXT	
+  gameLoop . . . . . . . . . . .	L Near	 00000317 _TEXT	
+  patternLoop  . . . . . . . . .	L Near	 000003FB _TEXT	
+  alreadyExists  . . . . . . . .	L Near	 00000446 _TEXT	
+  LookForKey . . . . . . . . . .	L Near	 00000529 _TEXT	
+  stopLeft . . . . . . . . . . .	L Near	 000005F3 _TEXT	
+  stopUp . . . . . . . . . . . .	L Near	 000006BC _TEXT	
+  stopRight  . . . . . . . . . .	L Near	 00000783 _TEXT	
+  stopDown . . . . . . . . . . .	L Near	 0000084C _TEXT	
+  CheckPattern . . . . . . . . .	L Near	 00000912 _TEXT	
+  oneCorrect . . . . . . . . . .	L Near	 00000938 _TEXT	
+  skip . . . . . . . . . . . . .	L Near	 0000094F _TEXT	
+  nextLevel  . . . . . . . . . .	L Near	 00000979 _TEXT	
+  wrongAnswer  . . . . . . . . .	L Near	 00000A3D _TEXT	
+printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+writeRedMsg  . . . . . . . . . .	P Near	 00000142 _TEXT	Length= 0000001D Public C
+  msg  . . . . . . . . . . . . .	DWord	 bp + 00000008
+wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000003h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
+CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
+CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
+CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
+CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+CreateFile . . . . . . . . . . .	Text   	 CreateFileA
+DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
+ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
+ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
+ENABLE_MOUSE_INPUT . . . . . . .	Number	 00000010h   
+ENABLE_PROCESSED_INPUT . . . . .	Number	 00000001h   
+ENABLE_PROCESSED_OUTPUT  . . . .	Number	 00000001h   
+ENABLE_WINDOW_INPUT  . . . . . .	Number	 00000008h   
+ENABLE_WRAP_AT_EOL_OUTPUT  . . .	Number	 00000002h   
+ENHANCED_KEY . . . . . . . . . .	Number	 00000100h   
+FALSE  . . . . . . . . . . . . .	Number	 00000000h   
+FILE_APPEND_DATA . . . . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_ARCHIVE . . . . .	Number	 00000020h   
+FILE_ATTRIBUTE_COMPRESSED  . . .	Number	 00000800h   
+FILE_ATTRIBUTE_DEVICE  . . . . .	Number	 00000040h   
+FILE_ATTRIBUTE_DIRECTORY . . . .	Number	 00000010h   
+FILE_ATTRIBUTE_ENCRYPTED . . . .	Number	 00004000h   
+FILE_ATTRIBUTE_HIDDEN  . . . . .	Number	 00000002h   
+FILE_ATTRIBUTE_NORMAL  . . . . .	Number	 00000080h   
+FILE_ATTRIBUTE_NOT_CONTENT_INDEXED .	Number	 00002000h   
+FILE_ATTRIBUTE_OFFLINE . . . . .	Number	 00001000h   
+FILE_ATTRIBUTE_READONLY  . . . .	Number	 00000001h   
+FILE_ATTRIBUTE_REPARSE_POINT . .	Number	 00000400h   
+FILE_ATTRIBUTE_SPARSE_FILE . . .	Number	 00000200h   
+FILE_ATTRIBUTE_SYSTEM  . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_TEMPORARY . . . .	Number	 00000100h   
+FILE_BEGIN . . . . . . . . . . .	Number	 00000000h   
+FILE_CURRENT . . . . . . . . . .	Number	 00000001h   
+FILE_DELETE_CHILD  . . . . . . .	Number	 00000040h   
+FILE_END . . . . . . . . . . . .	Number	 00000002h   
+FILE_READ_DATA . . . . . . . . .	Number	 00000001h   
+FILE_SHARE_DELETE  . . . . . . .	Number	 00000004h   
+FILE_SHARE_READ  . . . . . . . .	Number	 00000001h   
+FILE_SHARE_WRITE . . . . . . . .	Number	 00000002h   
+FILE_WRITE_DATA  . . . . . . . .	Number	 00000002h   
+FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h   
+FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
+FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
+FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
+GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
+GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
+GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
+GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
+GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
+HANDLE . . . . . . . . . . . . .	Text   	 DWORD
+HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
+HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
+HEAP_NO_SERIALIZE  . . . . . . .	Number	 00000001h   
+HEAP_REALLOC_IN_PLACE_ONLY . . .	Number	 00000010h   
+HEAP_ZERO_MEMORY . . . . . . . .	Number	 00000008h   
+IDABORT  . . . . . . . . . . . .	Number	 00000003h   
+IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
+IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
+IDCONTINUE . . . . . . . . . . .	Number	 0000000Bh   
+IDHELP . . . . . . . . . . . . .	Number	 00000009h   
+IDIGNORE . . . . . . . . . . . .	Number	 00000005h   
+IDNO . . . . . . . . . . . . . .	Number	 00000007h   
+IDOK . . . . . . . . . . . . . .	Number	 00000001h   
+IDRETRY  . . . . . . . . . . . .	Number	 00000004h   
+IDTIMEOUT  . . . . . . . . . . .	Number	 00007D00h   
+IDTRYAGAIN . . . . . . . . . . .	Number	 0000000Ah   
+IDYES  . . . . . . . . . . . . .	Number	 00000006h   
+INVALID_HANDLE_VALUE . . . . . .	Number	 -00000001h   
+KBDOWN_FLAG  . . . . . . . . . .	Number	 00000001h   
+KEY_EVENT  . . . . . . . . . . .	Number	 00000001h   
+KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
+K  . . . . . . . . . . . . . . .	DWord	 000003BE _DATA	
+LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
+LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
+MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
+MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
+MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
+MB_DEFBUTTON1  . . . . . . . . .	Number	 00000000h   
+MB_DEFBUTTON2  . . . . . . . . .	Number	 00000100h   
+MB_DEFBUTTON3  . . . . . . . . .	Number	 00000200h   
+MB_DEFBUTTON4  . . . . . . . . .	Number	 00000300h   
+MB_HELP  . . . . . . . . . . . .	Number	 00004000h   
+MB_ICONASTERISK  . . . . . . . .	Number	 00000040h   
+MB_ICONERROR . . . . . . . . . .	Number	 00000010h   
+MB_ICONEXCLAMATION . . . . . . .	Number	 00000030h   
+MB_ICONHAND  . . . . . . . . . .	Number	 00000010h   
+MB_ICONINFORMATION . . . . . . .	Number	 00000040h   
+MB_ICONQUESTION  . . . . . . . .	Number	 00000020h   
+MB_ICONSTOP  . . . . . . . . . .	Number	 00000010h   
+MB_ICONWARNING . . . . . . . . .	Number	 00000030h   
+MB_OKCANCEL  . . . . . . . . . .	Number	 00000001h   
+MB_OK  . . . . . . . . . . . . .	Number	 00000000h   
+MB_RETRYCANCEL . . . . . . . . .	Number	 00000005h   
+MB_SYSTEMMODAL . . . . . . . . .	Number	 00001000h   
+MB_TASKMODAL . . . . . . . . . .	Number	 00002000h   
+MB_USERICON  . . . . . . . . . .	Number	 00000080h   
+MB_YESNOCANCEL . . . . . . . . .	Number	 00000003h   
+MB_YESNO . . . . . . . . . . . .	Number	 00000004h   
+MENU_EVENT . . . . . . . . . . .	Number	 00000008h   
+MOUSE_EVENT  . . . . . . . . . .	Number	 00000002h   
+MessageBox . . . . . . . . . . .	Text   	 MessageBoxA
+NULL . . . . . . . . . . . . . .	Number	 00000000h   
+NUMLOCK_ON . . . . . . . . . . .	Number	 00000020h   
+N  . . . . . . . . . . . . . . .	DWord	 000003C6 _DATA	
+OPEN_ALWAYS  . . . . . . . . . .	Number	 00000004h   
+OPEN_EXISTING  . . . . . . . . .	Number	 00000003h   
+PeekConsoleInput . . . . . . . .	Text   	 PeekConsoleInputA
+P  . . . . . . . . . . . . . . .	DWord	 000003CA _DATA	
+RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h   
+RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
+ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
+ReadConsole  . . . . . . . . . .	Text   	 ReadConsoleA
+Restart  . . . . . . . . . . . .	L Near	 00000A54 _TEXT	
+SCROLLLOCK_ON  . . . . . . . . .	Number	 00000040h   
+SHIFT_MASK . . . . . . . . . . .	Number	 00000010h   
+SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h   
+STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
+STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
+STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
+SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
+TAB  . . . . . . . . . . . . . .	Number	 00000009h   
+TRUE . . . . . . . . . . . . . .	Number	 00000001h   
+TRUNCATE_EXISTING  . . . . . . .	Number	 00000005h   
+VK_11  . . . . . . . . . . . . .	Number	 000000BDh   
+VK_12  . . . . . . . . . . . . .	Number	 000000BBh   
+VK_ADD . . . . . . . . . . . . .	Number	 0000006Bh   
+VK_BACK  . . . . . . . . . . . .	Number	 00000008h   
+VK_CANCEL  . . . . . . . . . . .	Number	 00000003h   
+VK_CAPITAL . . . . . . . . . . .	Number	 00000014h   
+VK_CLEAR . . . . . . . . . . . .	Number	 0000000Ch   
+VK_CONTROL . . . . . . . . . . .	Number	 00000011h   
+VK_DECIMAL . . . . . . . . . . .	Number	 0000006Eh   
+VK_DELETE  . . . . . . . . . . .	Number	 0000002Eh   
+VK_DIVIDE  . . . . . . . . . . .	Number	 0000006Fh   
+VK_DOWN  . . . . . . . . . . . .	Number	 00000028h   
+VK_END . . . . . . . . . . . . .	Number	 00000023h   
+VK_ESCAPE  . . . . . . . . . . .	Number	 0000001Bh   
+VK_EXECUTE . . . . . . . . . . .	Number	 0000002Bh   
+VK_F10 . . . . . . . . . . . . .	Number	 00000079h   
+VK_F11 . . . . . . . . . . . . .	Number	 0000007Ah   
+VK_F12 . . . . . . . . . . . . .	Number	 0000007Bh   
+VK_F13 . . . . . . . . . . . . .	Number	 0000007Ch   
+VK_F14 . . . . . . . . . . . . .	Number	 0000007Dh   
+VK_F15 . . . . . . . . . . . . .	Number	 0000007Eh   
+VK_F16 . . . . . . . . . . . . .	Number	 0000007Fh   
+VK_F17 . . . . . . . . . . . . .	Number	 00000080h   
+VK_F18 . . . . . . . . . . . . .	Number	 00000081h   
+VK_F19 . . . . . . . . . . . . .	Number	 00000082h   
+VK_F1  . . . . . . . . . . . . .	Number	 00000070h   
+VK_F20 . . . . . . . . . . . . .	Number	 00000083h   
+VK_F21 . . . . . . . . . . . . .	Number	 00000084h   
+VK_F22 . . . . . . . . . . . . .	Number	 00000085h   
+VK_F23 . . . . . . . . . . . . .	Number	 00000086h   
+VK_F24 . . . . . . . . . . . . .	Number	 00000087h   
+VK_F2  . . . . . . . . . . . . .	Number	 00000071h   
+VK_F3  . . . . . . . . . . . . .	Number	 00000072h   
+VK_F4  . . . . . . . . . . . . .	Number	 00000073h   
+VK_F5  . . . . . . . . . . . . .	Number	 00000074h   
+VK_F6  . . . . . . . . . . . . .	Number	 00000075h   
+VK_F7  . . . . . . . . . . . . .	Number	 00000076h   
+VK_F8  . . . . . . . . . . . . .	Number	 00000077h   
+VK_F9  . . . . . . . . . . . . .	Number	 00000078h   
+VK_HELP  . . . . . . . . . . . .	Number	 0000002Fh   
+VK_HOME  . . . . . . . . . . . .	Number	 00000024h   
+VK_INSERT  . . . . . . . . . . .	Number	 0000002Dh   
+VK_LBUTTON . . . . . . . . . . .	Number	 00000001h   
+VK_LCONTROL  . . . . . . . . . .	Number	 000000A2h   
+VK_LEFT  . . . . . . . . . . . .	Number	 00000025h   
+VK_LMENU . . . . . . . . . . . .	Number	 000000A4h   
+VK_LSHIFT  . . . . . . . . . . .	Number	 000000A0h   
+VK_MENU  . . . . . . . . . . . .	Number	 00000012h   
+VK_MULTIPLY  . . . . . . . . . .	Number	 0000006Ah   
+VK_NEXT  . . . . . . . . . . . .	Number	 00000022h   
+VK_NUMLOCK . . . . . . . . . . .	Number	 00000090h   
+VK_NUMPAD0 . . . . . . . . . . .	Number	 00000060h   
+VK_NUMPAD1 . . . . . . . . . . .	Number	 00000061h   
+VK_NUMPAD2 . . . . . . . . . . .	Number	 00000062h   
+VK_NUMPAD3 . . . . . . . . . . .	Number	 00000063h   
+VK_NUMPAD4 . . . . . . . . . . .	Number	 00000064h   
+VK_NUMPAD5 . . . . . . . . . . .	Number	 00000065h   
+VK_NUMPAD6 . . . . . . . . . . .	Number	 00000066h   
+VK_NUMPAD7 . . . . . . . . . . .	Number	 00000067h   
+VK_NUMPAD8 . . . . . . . . . . .	Number	 00000068h   
+VK_NUMPAD9 . . . . . . . . . . .	Number	 00000069h   
+VK_PAUSE . . . . . . . . . . . .	Number	 00000013h   
+VK_PRINT . . . . . . . . . . . .	Number	 0000002Ah   
+VK_PRIOR . . . . . . . . . . . .	Number	 00000021h   
+VK_RBUTTON . . . . . . . . . . .	Number	 00000002h   
+VK_RCONTROL  . . . . . . . . . .	Number	 000000A3h   
+VK_RETURN  . . . . . . . . . . .	Number	 0000000Dh   
+VK_RIGHT . . . . . . . . . . . .	Number	 00000027h   
+VK_RMENU . . . . . . . . . . . .	Number	 000000A5h   
+VK_RSHIFT  . . . . . . . . . . .	Number	 000000A1h   
+VK_SCROLL  . . . . . . . . . . .	Number	 00000091h   
+VK_SEPARATER . . . . . . . . . .	Number	 0000006Ch   
+VK_SHIFT . . . . . . . . . . . .	Number	 00000010h   
+VK_SNAPSHOT  . . . . . . . . . .	Number	 0000002Ch   
+VK_SPACE . . . . . . . . . . . .	Number	 00000020h   
+VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh   
+VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
+VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
+WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
+WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
+WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+black  . . . . . . . . . . . . .	Number	 00000000h   
+blue . . . . . . . . . . . . . .	Number	 00000001h   
+brown  . . . . . . . . . . . . .	Number	 00000006h   
+colorR . . . . . . . . . . . . .	DWord	 000004CD _DATA	
+colorW . . . . . . . . . . . . .	DWord	 000004C5 _DATA	
+colorY . . . . . . . . . . . . .	DWord	 000004C9 _DATA	
+consoleHandle  . . . . . . . . .	DWord	 000004D5 _DATA	
+consoleInfo  . . . . . . . . . .	CONSOLE_SCREEN_BUFFER_INFO  000004E9 _DATA	
+correct  . . . . . . . . . . . .	DWord	 000003D2 _DATA	
+currentPos . . . . . . . . . . .	Word	 000003E1 _DATA	
+currentRed . . . . . . . . . . .	Byte	 000003E3 _DATA	
+cursorInfo . . . . . . . . . . .	CONSOLE_CURSOR_INFO  000004E1 _DATA	
+cyan . . . . . . . . . . . . . .	Number	 00000003h   
+difficultyMsg  . . . . . . . . .	Byte	 000002D9 _DATA	
+endGame  . . . . . . . . . . . .	L Near	 00000AAD _TEXT	
+errorMsg . . . . . . . . . . . .	Byte	 0000036A _DATA	
+exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+gameName . . . . . . . . . . . .	Byte	 00000000 _DATA	
+gameOverMsg  . . . . . . . . . .	Byte	 000003AF _DATA	
+gameRules  . . . . . . . . . . .	Byte	 00000106 _DATA	
+gray . . . . . . . . . . . . . .	Number	 00000008h   
+green  . . . . . . . . . . . . .	Number	 00000002h   
+hits . . . . . . . . . . . . . .	DWord	 000003D6 _DATA	
+introMsg . . . . . . . . . . . .	Byte	 0000000F _DATA	
+jumpCell . . . . . . . . . . . .	Byte	 000003E4 _DATA	
+levelMsg . . . . . . . . . . . .	Byte	 00000029 _DATA	
+levelNo  . . . . . . . . . . . .	Byte	 000003DA _DATA	
+lightBlue  . . . . . . . . . . .	Number	 00000009h   
+lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
+lightGray  . . . . . . . . . . .	Number	 00000007h   
+lightGreen . . . . . . . . . . .	Number	 0000000Ah   
+lightMagenta . . . . . . . . . .	Number	 0000000Dh   
+lightRed . . . . . . . . . . . .	Number	 0000000Ch   
+magenta  . . . . . . . . . . . .	Number	 00000005h   
+matrixMsg  . . . . . . . . . . .	Byte	 00000032 _DATA	
+maxK . . . . . . . . . . . . . .	Byte	 000003C2 _DATA	
+maxP . . . . . . . . . . . . . .	Byte	 000003C4 _DATA	
+minK . . . . . . . . . . . . . .	Byte	 000003C3 _DATA	
+minP . . . . . . . . . . . . . .	Byte	 000003C5 _DATA	
+mistake  . . . . . . . . . . . .	Byte	 000003DF _DATA	
+nMsg . . . . . . . . . . . . . .	Byte	 00000051 _DATA	
+nextMsg  . . . . . . . . . . . .	Byte	 0000006B _DATA	
+outHandle  . . . . . . . . . . .	DWord	 000004D1 _DATA	
+patternArray . . . . . . . . . .	Word	 000003FD _DATA	
+playMsg  . . . . . . . . . . . .	Byte	 00000088 _DATA	
+pointsMsg  . . . . . . . . . . .	Byte	 000000D0 _DATA	
+points . . . . . . . . . . . . .	Byte	 000003E0 _DATA	
+previousPos  . . . . . . . . . .	Word	 000003F8 _DATA	
+previousRed  . . . . . . . . . .	Byte	 000003FA _DATA	
+red  . . . . . . . . . . . . . .	Number	 00000004h   
+scrSize  . . . . . . . . . . . .	COORD	 000004FF _DATA	
+startCell  . . . . . . . . . . .	Byte	 000003EE _DATA	
+startMsg . . . . . . . . . . . .	Byte	 000000DB _DATA	
+tempNum  . . . . . . . . . . . .	DWord	 000003CE _DATA	
+tempx  . . . . . . . . . . . . .	Byte	 000003FB _DATA	
+tempy  . . . . . . . . . . . . .	Byte	 000003FC _DATA	
+userArray  . . . . . . . . . . .	Word	 0000045F _DATA	
+userMove . . . . . . . . . . . .	Word	 000004C1 _DATA	
+userTemp . . . . . . . . . . . .	Word	 000004C3 _DATA	
+white  . . . . . . . . . . . . .	Number	 0000000Fh   
+winMsg . . . . . . . . . . . . .	Byte	 000000F1 _DATA	
+windowRect . . . . . . . . . . .	SMALL_RECT  000004D9 _DATA	
+wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
+yellow . . . . . . . . . . . . .	Number	 0000000Eh   
+
+	   0 Warnings
+	   0 Errors
